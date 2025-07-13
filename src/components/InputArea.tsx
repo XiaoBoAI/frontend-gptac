@@ -1,18 +1,21 @@
 import { Input, Button, Dropdown, Menu } from 'antd';
-import { SendOutlined, GlobalOutlined, DownOutlined } from '@ant-design/icons';
+import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined } from '@ant-design/icons';
 import React, { useRef } from 'react';
 
 const { TextArea } = Input;
 
 const modelList = [
-  { key: 'deep', label: '深度思考', icon: <span style={{fontSize:18}}>🧠</span> },
-  { key: 'search', label: '全网搜索', icon: <GlobalOutlined /> },
+  { key: 'deep', label: '深度思考', icon: <span style={{fontSize:18}}>🧠</span>, description: '适合复杂推理和深度分析' },
+  { key: 'search', label: '全网搜索', icon: <GlobalOutlined />, description: '实时搜索最新信息' },
+  { key: 'creative', label: '创意写作', icon: <span style={{fontSize:18}}>✨</span>, description: '适合创意和写作任务' },
+  { key: 'academic', label: '学术助手', icon: <span style={{fontSize:18}}>🎓</span>, description: '专注于学术研究和论文' },
 ];
 
 interface InputAreaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSend: () => void;
+  onClear: () => void;
   currentModule?: string;
   isEmpty?: boolean;
   selectedModel?: string;
@@ -20,29 +23,36 @@ interface InputAreaProps {
 }
 
 const modulePlaceholders: Record<string, string> = {
-  chat: '搜索、提问或发消息',
-  ai_search: '搜索、提问或发消息',
-  ai_writing: '请输入写作需求...',
-  ai_programming: '请输入编程问题或需求...',
+  ai_chat: '与AI进行智能对话，输入您的问题...',
+  academic_chat: '进行学术讨论，输入您的学术问题...',
+  paper_qa: '针对论文内容提问，帮助理解学术文献...',
+  paper_write: '输入您的写作需求，AI将协助您完成论文...',
+  paper_translate: '输入需要翻译的论文内容...',
 };
 
 const InputArea: React.FC<InputAreaProps> = ({
   value,
   onChange,
   onSend,
-  currentModule = 'chat',
+  onClear,
+  currentModule = 'ai_chat',
   isEmpty = false,
   selectedModel = 'deep',
   setSelectedModel,
 }) => {
   const inputRef = useRef(null);
-  const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['chat'];
+  const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
 
   // 下拉菜单
   const menu = (
     <Menu selectedKeys={[selectedModel]} onClick={({ key }) => setSelectedModel && setSelectedModel(key)}>
       {modelList.map(m => (
-        <Menu.Item key={m.key} icon={m.icon}>{m.label}</Menu.Item>
+        <Menu.Item key={m.key} icon={m.icon}>
+          <div>
+            <div className="font-medium">{m.label}</div>
+            <div className="text-xs text-gray-500">{m.description}</div>
+          </div>
+        </Menu.Item>
       ))}
     </Menu>
   );
@@ -51,10 +61,10 @@ const InputArea: React.FC<InputAreaProps> = ({
   const sendDisabled = !value.trim();
   const sendBtnStyle = {
     position: 'absolute' as const,
-    right: 12,        // 从 16 改为 12
-    bottom: -40,       // 从 16 改为 12  
-    width: 36,        // 从 44 改为 36
-    height: 36,       // 从 44 改为 36
+    right: 12,
+    bottom: -40,
+    width: 36,
+    height: 36,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -80,7 +90,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           flexDirection: 'column',
           justifyContent: 'center',
           border: '2px solid #f3f3f3',
-          marginBottom: 10, // 新增这一行，设置底部间距
+          marginBottom: 10,
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>
@@ -114,11 +124,11 @@ const InputArea: React.FC<InputAreaProps> = ({
             style={sendBtnStyle}
           />
         </div>
-        {/* 底部模型选择按钮 */}
-        <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px' }}>
+        {/* 底部控制栏 */}
+        <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>
           <Dropdown overlay={menu} trigger={['click']}>
             <Button
-              icon={<span style={{fontSize:14}}>🧠</span>}
+              icon={modelList.find(m => m.key === selectedModel)?.icon || <span style={{fontSize:14}}>🧠</span>}
               type="default"
               shape="round"
               size="middle"
@@ -127,6 +137,17 @@ const InputArea: React.FC<InputAreaProps> = ({
               {modelList.find(m => m.key === selectedModel)?.label || '深度思考'} <DownOutlined />
             </Button>
           </Dropdown>
+          
+          {/* 清空按钮 */}
+          <Button
+            icon={<ClearOutlined />}
+            type="text"
+            size="small"
+            onClick={onClear}
+            style={{ color: '#666', fontSize: 12 }}
+          >
+            清空对话
+          </Button>
         </div>
       </div>
     </div>
