@@ -1,5 +1,5 @@
-import { Input, Button, Dropdown, Menu } from 'antd';
-import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined } from '@ant-design/icons';
+import { Input, Button, Dropdown, Menu, Tooltip } from 'antd';
+import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutlined, StopOutlined } from '@ant-design/icons';
 import React, { useRef } from 'react';
 
 const { TextArea } = Input;
@@ -16,10 +16,12 @@ interface InputAreaProps {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSend: () => void;
   onClear: () => void;
+  onStopStreaming?: () => void; // 停止流式回复
   currentModule?: string;
   isEmpty?: boolean;
   selectedModel?: string;
   setSelectedModel?: (model: string) => void;
+  isStreaming?: boolean; // 是否正在流式回复
 }
 
 const modulePlaceholders: Record<string, string> = {
@@ -30,15 +32,25 @@ const modulePlaceholders: Record<string, string> = {
   paper_translate: '输入需要翻译的论文内容...',
 };
 
+// 自定义停止按钮图标
+const StopCircleIcon: React.FC<{size?:number}> = ({size=22}) => (
+  <svg width={size} height={size} viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="11" cy="11" r="10" stroke="#222" strokeWidth="2" fill="none"/>
+    <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill="#222" />
+  </svg>
+);
+
 const InputArea: React.FC<InputAreaProps> = ({
   value,
   onChange,
   onSend,
   onClear,
+  onStopStreaming,
   currentModule = 'ai_chat',
   isEmpty = false,
   selectedModel = 'deep',
   setSelectedModel,
+  isStreaming = false,
 }) => {
   const inputRef = useRef(null);
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
@@ -70,9 +82,9 @@ const InputArea: React.FC<InputAreaProps> = ({
     justifyContent: 'center',
     boxShadow: '0 2px 8px #e0e0e0',
     border: 'none',
-    background: sendDisabled ? '#f3f3f3' : '#1677ff',
-    color: sendDisabled ? '#bfbfbf' : '#fff',
-    cursor: sendDisabled ? 'not-allowed' : 'pointer',
+    background: isStreaming ? '#ff4d4f' : (sendDisabled ? '#f3f3f3' : '#1677ff'),
+    color: '#fff',
+    cursor: 'pointer',
     transition: 'background 0.2s',
   };
 
@@ -94,35 +106,59 @@ const InputArea: React.FC<InputAreaProps> = ({
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>
+          {/* 流式回复状态指示器 */}
+          {isStreaming && (
+            <div style={{
+              position: 'absolute',
+              top: 8,
+              left: 24,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12,
+              color: '#1677ff',
+              zIndex: 1,
+            }}>
+              <LoadingOutlined style={{ fontSize: 12 }} />
+              <span>AI正在回复中...</span>
+            </div>
+          )}
           <TextArea
             ref={inputRef}
             value={value}
             onChange={onChange}
-            placeholder={placeholder}
+            placeholder={isStreaming ? '正在回复中，您可以继续输入...' : placeholder}
             autoSize={{ minRows: 1, maxRows: 3 }}
+            disabled={false}
             style={{
               border: 'none',
               outline: 'none',
               boxShadow: 'none',
               background: 'transparent',
               fontSize: 17,
-              padding: '24px 64px 24px 24px',
+              padding: isStreaming ? '32px 64px 24px 24px' : '24px 64px 24px 24px',
               borderRadius: 24,
               resize: 'none',
               color: '#222',
             }}
             onPressEnter={e => { if (!e.shiftKey) { e.preventDefault(); onSend(); } }}
           />
-          {/* 发送按钮 */}
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<SendOutlined rotate={-90} style={{fontSize:16}} />}
-            size="small"
-            disabled={sendDisabled}
-            onClick={onSend}
-            style={sendBtnStyle}
-          />
+          {/* 发送/停止按钮 */}
+          <Tooltip title={isStreaming ? "停止生成" : "发送"}>
+            <Button
+                type="primary"
+                shape="circle"
+                icon={
+                isStreaming
+                    ? <StopCircleIcon size={22} />
+                    : <SendOutlined rotate={-90} style={{fontSize:16}} />
+                }
+                size="small"
+                disabled={isStreaming ? false : sendDisabled}
+                onClick={isStreaming ? onStopStreaming : onSend}
+                style={sendBtnStyle}
+            />
+            </Tooltip>
         </div>
         {/* 底部控制栏 */}
         <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>

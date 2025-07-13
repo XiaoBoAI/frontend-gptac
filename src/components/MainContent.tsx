@@ -16,13 +16,15 @@ interface MainContentProps {
   messages: ChatMessage[];
   messagesEndRef: React.RefObject<HTMLDivElement>;
   isEmpty: boolean;
+  isStreaming?: boolean; // 是否正在流式回复
 }
 
 const MainContent: React.FC<MainContentProps> = ({ 
   currentModule, 
   messages, 
   messagesEndRef, 
-  isEmpty 
+  isEmpty,
+  isStreaming = false
 }) => {
   const getModuleTitle = (module: string) => {
     const titles = {
@@ -110,50 +112,56 @@ const MainContent: React.FC<MainContentProps> = ({
                   }}
                 >
                   {message.sender === 'bot' ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => <div className="mb-3 last:mb-0">{children}</div>,
-                        code: ({ children, className }) => {
-                          const isInline = !className;
-                          return isInline ? (
-                            <code className="bg-gray-200 px-1 py-0.5 rounded text-sm">
+                    <div>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <div className="mb-3 last:mb-0">{children}</div>,
+                          code: ({ children, className }) => {
+                            const isInline = !className;
+                            return isInline ? (
+                              <code className="bg-gray-200 px-1 py-0.5 rounded text-sm">
+                                {children}
+                              </code>
+                            ) : (
+                              <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
+                                <code>{children}</code>
+                              </pre>
+                            );
+                          },
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-3">
                               {children}
-                            </code>
-                          ) : (
-                            <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
-                              <code>{children}</code>
-                            </pre>
-                          );
-                        },
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
-                        h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-3">
-                            {children}
-                          </blockquote>
-                        ),
-                        table: ({ children }) => (
-                          <div className="overflow-x-auto mb-3">
-                            <table className="min-w-full border border-gray-300">{children}</table>
-                          </div>
-                        ),
-                        th: ({ children }) => (
-                          <th className="border border-gray-300 px-3 py-2 bg-gray-50 font-semibold">
-                            {children}
-                          </th>
-                        ),
-                        td: ({ children }) => (
-                          <td className="border border-gray-300 px-3 py-2">{children}</td>
-                        ),
-                      }}
-                    >
-                      {message.text}
-                    </ReactMarkdown>
+                            </blockquote>
+                          ),
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto mb-3">
+                              <table className="min-w-full border border-gray-300">{children}</table>
+                            </div>
+                          ),
+                          th: ({ children }) => (
+                            <th className="border border-gray-300 px-3 py-2 bg-gray-50 font-semibold">
+                              {children}
+                            </th>
+                          ),
+                          td: ({ children }) => (
+                            <td className="border border-gray-300 px-3 py-2">{children}</td>
+                          ),
+                        }}
+                      >
+                        {message.text}
+                      </ReactMarkdown>
+                      {/* 如果是最后一条消息且正在流式回复，显示光标 */}
+                      {index === messages.length - 1 && isStreaming && (
+                        <span className="inline-block w-2 h-5 bg-green-500 ml-1 animate-pulse"></span>
+                      )}
+                    </div>
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
                   )}

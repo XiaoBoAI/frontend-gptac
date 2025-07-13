@@ -31,16 +31,21 @@ interface HistoryRecord {
   messages: ChatMessage[];
   timestamp: number;
   model: string;
+  isStreaming?: boolean; // 是否正在流式回复
+  streamingText?: string; // 流式回复的临时文本
 }
 
 // 主应用组件
 function App() {
   const [currentModule, setCurrentModule] = useState('ai_chat');
   const [ui_maininput, set_ui_maininput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedModel, setSelectedModel] = useState('deep');
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+  const currentHistoryIdRef = useRef<string | null>(null);
+  
+  // 存储每个历史记录的WebSocket连接
+  const websocketConnections = useRef<Map<string, WebSocket>>(new Map());
   
   const MainUserComInterface = useRef<UserInterfaceMsg>({
     function: 'chat',
@@ -57,8 +62,37 @@ function App() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    currentHistoryIdRef.current = currentHistoryId;
+  }, [currentHistoryId]);
+
+  // 获取当前历史记录的消息
+  const getCurrentMessages = (): ChatMessage[] => {
+    if (!currentHistoryId) return [];
+    const record = historyRecords.find(r => r.id === currentHistoryId);
+    if (!record) return [];
+    
+    // 如果有流式回复，添加临时消息
+    if (record.isStreaming && record.streamingText) {
+      return [...record.messages, { sender: 'bot', text: record.streamingText }];
+    }
+    
+    return record.messages;
+  };
+
+  useEffect(() => {
     (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [getCurrentMessages()]);
+
+  // 组件卸载时清理WebSocket连接
+  useEffect(() => {
+    return () => {
+      websocketConnections.current.forEach((ws, historyId) => {
+        console.log('Cleaning up WebSocket connection for history:', historyId);
+        ws.close();
+      });
+      websocketConnections.current.clear();
+    };
+  }, []);
 
   // 修复类型错误：将HTMLInputElement改为HTMLTextAreaElement
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -71,10 +105,9 @@ function App() {
     
     // 添加用户消息到当前对话
     const userMessage: ChatMessage = { sender: 'user', text: ui_maininput };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
     
     // 如果是新对话，创建历史记录
+    let usedHistoryId = currentHistoryId;
     if (!currentHistoryId) {
       const newHistoryId = Date.now().toString();
       const newRecord: HistoryRecord = {
@@ -83,15 +116,22 @@ function App() {
         title: ui_maininput.substring(0, 30) + (ui_maininput.length > 30 ? '...' : ''),
         messages: [userMessage],
         timestamp: Date.now(),
-        model: selectedModel
+        model: selectedModel,
+        isStreaming: false
       };
       setHistoryRecords(prev => [newRecord, ...prev]);
       setCurrentHistoryId(newHistoryId);
+      usedHistoryId = newHistoryId;
     } else {
       // 更新现有历史记录
       setHistoryRecords(prev => prev.map(record => 
-        record.id === currentHistoryId 
-          ? { ...record, messages: updatedMessages }
+        record.id === usedHistoryId 
+          ? { 
+              ...record, 
+              messages: [...record.messages, userMessage],
+              isStreaming: true,
+              streamingText: ''
+            }
           : record
       ));
     }
@@ -100,46 +140,133 @@ function App() {
     set_ui_maininput('');
     MainUserComInterface.current.main_input = '';
 
-    begin_contact_websocket_server({
-      initial_message: {
+    // 创建WebSocket连接
+    const ws = new WebSocket(url);
+    websocketConnections.current.set(usedHistoryId!, ws);
+    
+    // 用于检测大模型是否停止回复的定时器
+    let responseTimeoutId: NodeJS.Timeout | null = null;
+    
+    const resetResponseTimeout = () => {
+      if (responseTimeoutId) {
+        clearTimeout(responseTimeoutId);
+      }
+      // 如果3秒内没有收到新消息，认为回复结束
+      responseTimeoutId = setTimeout(() => {
+        console.log('大模型停止回复，关闭连接');
+        ws.close();
+      }, 3000);
+    };
+
+    ws.onopen = () => {
+      console.log('WebSocket connection opened for history:', usedHistoryId);
+      ws.send(JSON.stringify({
         ...MainUserComInterface.current,
         main_input: userMessage.text,
         llm_kwargs: { model: selectedModel }
-      },
-      url: url,
-      receive_callback_fn: (parsedMessage: UserInterfaceMsg) => {
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
         const botMessage = parsedMessage.chatbot;
-        const new_message_list: ChatMessage[] = [...updatedMessages];
-        for (const conversation of botMessage) {
-          new_message_list.push(
-            { sender: 'user' as const, text: conversation[0] },
-            { sender: 'bot' as const, text: conversation[1] }
-          );
+        console.log('收到消息:', event.data);
+        if (botMessage && botMessage.length > 0) {
+          const lastConversation = botMessage[botMessage.length - 1];
+          if (lastConversation && lastConversation.length > 1) {
+            const aiResponse = lastConversation[1];
+            console.log('aiResponse:', aiResponse);
+            
+                          // 重置回复超时定时器
+              resetResponseTimeout();
+              
+              // 更新历史记录中的流式回复
+              setHistoryRecords(prev => prev.map(record => {
+                if (record.id === usedHistoryId) {
+                  // 直接更新流式回复的临时文本
+                  return {
+                    ...record,
+                    streamingText: aiResponse,
+                    isStreaming: true
+                  };
+                }
+                return record;
+              }));
+          }
         }
-        setMessages(new_message_list);
-        MainUserComInterface.current.history = parsedMessage.history;
         
-        // 更新历史记录中的消息
-        if (currentHistoryId) {
-          setHistoryRecords(prev => prev.map(record => 
-            record.id === currentHistoryId 
-              ? { ...record, messages: new_message_list }
-              : record
-          ));
-        }
+        MainUserComInterface.current.history = parsedMessage.history;
+      } catch (error) {
+        console.error('Error parsing message:', error);
       }
-    });
+    };
+
+    ws.onclose = (event) => {
+      console.log('WebSocket connection closed for history:', usedHistoryId, event);
+      websocketConnections.current.delete(usedHistoryId!);
+      
+      // 清除回复超时定时器
+      if (responseTimeoutId) {
+        clearTimeout(responseTimeoutId);
+      }
+      
+      // WebSocket连接关闭时，将流式回复转换为最终消息
+      setHistoryRecords(prev => prev.map(record => {
+        if (record.id === usedHistoryId && record.isStreaming && record.streamingText) {
+          return {
+            ...record,
+            messages: [...record.messages, { sender: 'bot', text: record.streamingText }],
+            isStreaming: false,
+            streamingText: undefined
+          };
+        }
+        return record;
+      }));
+    };
+
+    ws.onerror = (event) => {
+      console.error('WebSocket error for history:', usedHistoryId, event);
+      websocketConnections.current.delete(usedHistoryId!);
+      
+      // 清除回复超时定时器
+      if (responseTimeoutId) {
+        clearTimeout(responseTimeoutId);
+      }
+    };
   };
 
   const handleClear = () => {
-    setMessages([]);
     setCurrentHistoryId(null);
+  };
+
+  // 停止当前流式回复
+  const handleStopStreaming = () => {
+    if (currentHistoryId) {
+      const ws = websocketConnections.current.get(currentHistoryId);
+      if (ws) {
+        ws.close();
+        websocketConnections.current.delete(currentHistoryId);
+      }
+      
+      // 停止流式回复时，将当前流式文本转换为最终消息
+      setHistoryRecords(prev => prev.map(record => {
+        if (record.id === currentHistoryId && record.isStreaming && record.streamingText) {
+          return {
+            ...record,
+            messages: [...record.messages, { sender: 'bot', text: record.streamingText }],
+            isStreaming: false,
+            streamingText: undefined
+          };
+        }
+        return record;
+      }));
+    }
   };
 
   const handleHistorySelect = (historyId: string) => {
     const record = historyRecords.find(r => r.id === historyId);
     if (record) {
-      setMessages(record.messages);
       setCurrentModule(record.module);
       setCurrentHistoryId(historyId);
       setSelectedModel(record.model);
@@ -148,9 +275,14 @@ function App() {
 
   const handleModuleChange = (module: string) => {
     setCurrentModule(module);
-    setMessages([]);
     setCurrentHistoryId(null);
+    // 清空输入框，准备新对话
+    set_ui_maininput('');
+    MainUserComInterface.current.main_input = '';
   };
+
+  // 获取当前显示的消息
+  const currentMessages = getCurrentMessages();
 
   return (
     <div className="App overflow-hidden h-screen w-screen flex flex-row">
@@ -163,26 +295,29 @@ function App() {
       />
       <div className="flex flex-col flex-1 relative bg-white">
         {/* 右上角个人账号入口 */}
-        <div className="absolute top-4 right-8 flex items-center z-20">
+        {/* <div className="absolute top-4 right-8 flex items-center z-20">
           <Avatar size={28} src={null} />
           <span className="ml-2 font-medium text-base">张某某</span>
-        </div>
+        </div> */}
         {/* 内容区 */}
         <MainContent 
           currentModule={currentModule} 
-          messages={messages} 
+          messages={currentMessages} 
           messagesEndRef={messagesEndRef}
-          isEmpty={messages.length === 0}
+          isEmpty={currentMessages.length === 0}
+          isStreaming={historyRecords.find(r => r.id === currentHistoryId)?.isStreaming || false}
         />
         <InputArea 
           value={ui_maininput} 
           onChange={handleInputChange} 
           onSend={handleSendMessage} 
           onClear={handleClear}
+          onStopStreaming={handleStopStreaming}
           currentModule={currentModule}
-          isEmpty={messages.length === 0}
+          isEmpty={currentMessages.length === 0}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
+          isStreaming={historyRecords.find(r => r.id === currentHistoryId)?.isStreaming || false}
         />
       </div>
     </div>

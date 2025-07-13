@@ -1,7 +1,7 @@
-import { Avatar, Menu, List, Typography } from 'antd';
+import { Avatar, Menu, List, Typography, Badge } from 'antd';
 import type { MenuProps } from 'antd';
 import React from 'react';
-import { ClockCircleOutlined, MessageOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, MessageOutlined, LoadingOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -21,6 +21,8 @@ interface HistoryRecord {
   messages: any[];
   timestamp: number;
   model: string;
+  isStreaming?: boolean;
+  streamingText?: string;
 }
 
 interface SidebarProps {
@@ -61,6 +63,15 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const getModuleIcon = (moduleKey: string) => {
     return modules.find(m => m.key === moduleKey)?.icon || '💬';
+  };
+
+  // 获取显示标题，如果正在流式回复则显示实时内容
+  const getDisplayTitle = (record: HistoryRecord) => {
+    if (record.isStreaming && record.streamingText) {
+      const streamingPreview = record.streamingText.substring(0, 20);
+      return `${record.title} (正在回复: ${streamingPreview}...)`;
+    }
+    return record.title;
   };
 
   return (
@@ -109,18 +120,34 @@ const Sidebar: React.FC<SidebarProps> = ({
                   currentHistoryId === record.id 
                     ? 'bg-blue-50 border-blue-200' 
                     : 'hover:bg-gray-50'
-                }`}
+                } ${record.isStreaming ? 'border-l-4 border-l-green-400' : ''}`}
                 onClick={() => onHistorySelect(record.id)}
                 style={{ padding: '8px 12px', border: '1px solid transparent' }}
               >
                 <div className="w-full">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs">{getModuleIcon(record.module)}</span>
+                    <div className="flex items-center">
+                      <span className="text-xs mr-1">{getModuleIcon(record.module)}</span>
+                      {record.isStreaming && (
+                        <Badge 
+                          dot 
+                          color="green" 
+                          className="mr-1"
+                          title="正在回复"
+                        />
+                      )}
+                    </div>
                     <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
                   </div>
                   <div className="text-sm font-medium text-gray-700 truncate">
-                    {record.title}
+                    {getDisplayTitle(record)}
                   </div>
+                  {record.isStreaming && (
+                    <div className="text-xs text-green-600 mt-1 flex items-center">
+                      <LoadingOutlined className="mr-1" />
+                      正在回复中...
+                    </div>
+                  )}
                 </div>
               </List.Item>
             )}
