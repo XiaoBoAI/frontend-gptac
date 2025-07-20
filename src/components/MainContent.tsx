@@ -32,7 +32,13 @@ const MainContent: React.FC<MainContentProps> = ({
       'academic_chat': '学术对话',
       'paper_qa': '论文问答',
       'paper_write': '论文写作',
-      'paper_translate': '论文翻译'
+      'paper_translate': '论文翻译',
+      'document_analysis': '文档分析',
+      'calculator': '计算器',
+      'image_generator': '图像生成',
+      'data_analysis': '数据分析',
+      'user_profile': '个人中心',
+      'help': '帮助文档'
     };
     return titles[module as keyof typeof titles] || 'AI对话';
   };
@@ -43,16 +49,39 @@ const MainContent: React.FC<MainContentProps> = ({
       'academic_chat': '专注于学术领域的深度对话和讨论',
       'paper_qa': '针对论文内容进行问答，帮助理解学术文献',
       'paper_write': '辅助论文写作，提供写作建议和内容生成',
-      'paper_translate': '学术论文翻译服务，支持多语言互译'
+      'paper_translate': '学术论文翻译服务，支持多语言互译',
+      'document_analysis': '智能分析文档内容，提取关键信息',
+      'calculator': '智能计算器，支持复杂数学运算',
+      'image_generator': 'AI图像生成，根据描述创建图片',
+      'data_analysis': '数据分析工具，帮助理解和可视化数据',
+      'user_profile': '管理个人设置和偏好',
+      'help': '查看使用指南和常见问题'
     };
     return descriptions[module as keyof typeof descriptions] || '与AI进行智能对话';
+  };
+
+  const getModuleIcon = (module: string) => {
+    const icons = {
+      'ai_chat': '🤖',
+      'academic_chat': '🎓',
+      'paper_qa': '❓',
+      'paper_write': '✍️',
+      'paper_translate': '',
+      'document_analysis': '📄',
+      'calculator': '🧮',
+      'image_generator': '🎨',
+      'data_analysis': '📊',
+      'user_profile': '',
+      'help': '❓'
+    };
+    return icons[module as keyof typeof icons] || '💬';
   };
 
   if (isEmpty) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <div className="text-center max-w-2xl">
-          <div className="text-6xl mb-6">💬</div>
+          <div className="text-6xl mb-6">{getModuleIcon(currentModule)}</div>
           <h1 className="text-3xl font-bold text-gray-800 mb-4">
             {getModuleTitle(currentModule)}
           </h1>

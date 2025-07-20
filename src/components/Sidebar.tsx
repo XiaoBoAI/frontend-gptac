@@ -1,16 +1,76 @@
-import { Avatar, Menu, List, Typography, Badge } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
-import React from 'react';
-import { ClockCircleOutlined, MessageOutlined, LoadingOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { 
+  ClockCircleOutlined, 
+  MessageOutlined, 
+  LoadingOutlined,
+  LeftOutlined,
+  RightOutlined,
+  MessageOutlined as ChatIcon,
+  AppstoreOutlined,
+  ApiOutlined,
+  SettingOutlined,
+  RobotOutlined,
+  BookOutlined,
+  QuestionCircleOutlined,
+  EditOutlined,
+  TranslationOutlined,
+  ToolOutlined,
+  FileTextOutlined,
+  CalculatorOutlined,
+  PictureOutlined,
+  UserOutlined,
+  InfoCircleOutlined
+} from '@ant-design/icons';
 
 const { Text } = Typography;
 
-const modules = [
-  { key: 'ai_chat', label: 'AI对话', icon: '🤖' },
-  { key: 'academic_chat', label: '学术对话', icon: '🎓' },
-  { key: 'paper_qa', label: '论文问答', icon: '❓' },
-  { key: 'paper_write', label: '论文写作', icon: '✍️' },
-  { key: 'paper_translate', label: '论文翻译', icon: '🌐' },
+// 定义四个主要导航区域
+const navigationSections = [
+  {
+    key: 'chat',
+    label: '对话',
+    icon: <ChatIcon />,
+    color: '#1890ff',
+    items: [
+      { key: 'ai_chat', label: 'AI对话', icon: <RobotOutlined /> },
+      { key: 'academic_chat', label: '学术对话', icon: <BookOutlined /> },
+      { key: 'paper_qa', label: '论文问答', icon: <QuestionCircleOutlined /> },
+    ]
+  },
+  {
+    key: 'basic',
+    label: '基础功能区',
+    icon: <AppstoreOutlined />,
+    color: '#52c41a',
+    items: [
+      { key: 'paper_write', label: '论文写作', icon: <EditOutlined /> },
+      { key: 'paper_translate', label: '论文翻译', icon: <TranslationOutlined /> },
+      { key: 'document_analysis', label: '文档分析', icon: <FileTextOutlined /> },
+    ]
+  },
+  {
+    key: 'plugins',
+    label: '函数插件区',
+    icon: <ApiOutlined />,
+    color: '#722ed1',
+    items: [
+      { key: 'calculator', label: '计算器', icon: <CalculatorOutlined /> },
+      { key: 'image_generator', label: '图像生成', icon: <PictureOutlined /> },
+      { key: 'data_analysis', label: '数据分析', icon: <ToolOutlined /> },
+    ]
+  },
+  {
+    key: 'others',
+    label: '其他',
+    icon: <SettingOutlined />,
+    color: '#fa8c16',
+    items: [
+      { key: 'user_profile', label: '个人中心', icon: <UserOutlined /> },
+      { key: 'help', label: '帮助文档', icon: <InfoCircleOutlined /> },
+    ]
+  }
 ];
 
 // 历史记录接口
@@ -31,6 +91,8 @@ interface SidebarProps {
   historyRecords: HistoryRecord[];
   onHistorySelect: (historyId: string) => void;
   currentHistoryId: string | null;
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -38,10 +100,34 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentModule, 
   historyRecords, 
   onHistorySelect, 
-  currentHistoryId 
+  currentHistoryId,
+  collapsed = false,
+  onCollapse
 }) => {
+  const [activeSection, setActiveSection] = useState('chat');
+
+  // 根据当前模块自动设置活跃的导航区域
+  useEffect(() => {
+    const currentSection = navigationSections.find(section => 
+      section.items.some(item => item.key === currentModule)
+    );
+    if (currentSection) {
+      setActiveSection(currentSection.key);
+    }
+  }, [currentModule]);
+
   const handleClick: MenuProps['onClick'] = (e) => {
     onSelectModule(e.key);
+  };
+
+  // 处理底部导航区域切换
+  const handleSectionChange = (sectionKey: string) => {
+    setActiveSection(sectionKey);
+    // 切换到该区域的第一个模块
+    const section = navigationSections.find(s => s.key === sectionKey);
+    if (section && section.items.length > 0) {
+      onSelectModule(section.items[0].key);
+    }
   };
 
   const formatTime = (timestamp: number) => {
@@ -62,10 +148,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const getModuleIcon = (moduleKey: string) => {
-    return modules.find(m => m.key === moduleKey)?.icon || '💬';
+    const allItems = navigationSections.flatMap(section => section.items);
+    const item = allItems.find(item => item.key === moduleKey);
+    return item?.icon || <MessageOutlined />;
   };
 
-  // 获取显示标题，如果正在流式回复则显示实时内容
   const getDisplayTitle = (record: HistoryRecord) => {
     if (record.isStreaming && record.streamingText) {
       const streamingPreview = record.streamingText.substring(0, 20);
@@ -74,85 +161,146 @@ const Sidebar: React.FC<SidebarProps> = ({
     return record.title;
   };
 
+  const getCurrentSection = () => {
+    return navigationSections.find(section => 
+      section.items.some(item => item.key === currentModule)
+    ) || navigationSections[0];
+  };
+
+  const currentSection = getCurrentSection();
+
   return (
-    <div className="sidebar w-64 h-screen bg-white border-r flex flex-col">
-      <div className="flex items-center p-4 border-b">
-        <Avatar size={40} src={null} />
-        <span className="ml-2 font-bold text-lg">学术GPT</span>
-      </div>
-      
-      {/* 模块菜单 */}
-      <Menu
-        mode="inline"
-        selectedKeys={[currentModule]}
-        style={{ borderRight: 0, flex: 'none' }}
-        items={modules.map(module => ({
-          key: module.key,
-          label: (
-            <div className="flex items-center">
-              <span className="mr-2">{module.icon}</span>
-              {module.label}
-            </div>
-          ),
-        }))}
-        onClick={handleClick}
-      />
-      
-      {/* 历史记录区域 */}
-      <div className="flex-1 overflow-auto p-2 border-t">
-        <div className="font-semibold text-xs text-gray-500 mb-3 flex items-center">
-          <ClockCircleOutlined className="mr-1" />
-          历史对话
-        </div>
-        
-        {historyRecords.length === 0 ? (
-          <div className="text-gray-400 text-center text-sm py-8">
-            <MessageOutlined className="text-2xl mb-2 block" />
-            暂无历史对话
+    <div className="flex relative">
+      {/* 主侧边栏 */}
+      <div className={`sidebar bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
+        collapsed ? 'w-0 opacity-0' : 'w-64 opacity-100'
+      }`}>
+        {/* 头部区域 */}
+        <div className="flex items-center p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center">
+            <Avatar size={32} src={null} className="bg-blue-500" />
+            <span className="ml-2 font-bold text-lg text-gray-800">学术GPT</span>
           </div>
-        ) : (
-          <List
-            size="small"
-            dataSource={historyRecords}
-            renderItem={(record) => (
-              <List.Item
-                className={`cursor-pointer rounded-lg mb-1 transition-colors ${
-                  currentHistoryId === record.id 
-                    ? 'bg-blue-50 border-blue-200' 
-                    : 'hover:bg-gray-50'
-                } ${record.isStreaming ? 'border-l-4 border-l-green-400' : ''}`}
-                onClick={() => onHistorySelect(record.id)}
-                style={{ padding: '8px 12px', border: '1px solid transparent' }}
-              >
-                <div className="w-full">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center">
-                      <span className="text-xs mr-1">{getModuleIcon(record.module)}</span>
-                      {record.isStreaming && (
-                        <Badge 
-                          dot 
-                          color="green" 
-                          className="mr-1"
-                          title="正在回复"
-                        />
-                      )}
+        </div>
+
+        {/* 当前区域的菜单项 */}
+        <Menu
+          mode="inline"
+          selectedKeys={[currentModule]}
+          style={{ borderRight: 0, flex: 'none' }}
+          className="border-b border-gray-100"
+          items={currentSection.items.map(item => ({
+            key: item.key,
+            label: (
+              <div className="flex items-center">
+                <span className="mr-2 text-gray-600">{item.icon}</span>
+                {item.label}
+              </div>
+            ),
+          }))}
+          onClick={handleClick}
+        />
+
+        {/* 历史记录区域 - 使用固定高度，确保底部导航固定 */}
+        <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 280px)' }}>
+          <div className="font-semibold text-xs text-gray-500 mb-2 flex items-center">
+            <ClockCircleOutlined className="mr-1" />
+            历史对话
+          </div>
+          
+          {historyRecords.length === 0 ? (
+            <div className="text-gray-400 text-center text-xs py-4">
+              <MessageOutlined className="text-lg mb-1 block" />
+              暂无历史对话
+            </div>
+          ) : (
+            <List
+              size="small"
+              dataSource={historyRecords.slice(0, 8)} // 限制显示数量
+              renderItem={(record) => (
+                <List.Item
+                  className={`cursor-pointer rounded-md mb-1 transition-colors ${
+                    currentHistoryId === record.id 
+                      ? 'bg-blue-50 border-blue-200' 
+                      : 'hover:bg-gray-50'
+                  } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
+                  onClick={() => onHistorySelect(record.id)}
+                  style={{ padding: '6px 8px', border: '1px solid transparent' }}
+                >
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center">
+                        <span className="text-xs mr-1 text-gray-500">
+                          {getModuleIcon(record.module)}
+                        </span>
+                        {record.isStreaming && (
+                          <Badge 
+                            dot 
+                            color="green" 
+                            className="mr-1"
+                            title="正在回复"
+                          />
+                        )}
+                      </div>
+                      <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
                     </div>
-                    <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
-                  </div>
-                  <div className="text-sm font-medium text-gray-700 truncate">
-                    {getDisplayTitle(record)}
-                  </div>
-                  {record.isStreaming && (
-                    <div className="text-xs text-green-600 mt-1 flex items-center">
-                      <LoadingOutlined className="mr-1" />
-                      正在回复中...
+                    <div className="text-xs font-medium text-gray-700 truncate">
+                      {getDisplayTitle(record)}
                     </div>
-                  )}
-                </div>
-              </List.Item>
-            )}
+                    {record.isStreaming && (
+                      <div className="text-xs text-green-600 mt-1 flex items-center">
+                        <LoadingOutlined className="mr-1" />
+                        回复中...
+                      </div>
+                    )}
+                  </div>
+                </List.Item>
+              )}
+            />
+          )}
+        </div>
+
+        {/* 底部导航区域切换 - 固定在底部 */}
+        <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-gray-100 bottom-nav-container bg-white">
+          <div className="flex justify-center space-x-1">
+            {navigationSections.map(section => (
+              <Tooltip key={section.key} title={section.label} placement="right">
+                <Button
+                  type={activeSection === section.key ? 'primary' : 'text'}
+                  size="small"
+                  icon={section.icon}
+                  onClick={() => handleSectionChange(section.key)}
+                  className={`w-10 h-10 flex items-center justify-center bottom-nav-btn ${
+                    activeSection === section.key 
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
+                  }`}
+                  style={{
+                    backgroundColor: activeSection === section.key ? section.color : 'transparent',
+                    borderColor: activeSection === section.key ? section.color : 'transparent'
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 收起/展开按钮 - 使用箭头图标 */}
+      <div className="flex items-center">
+        <Tooltip title={collapsed ? "展开侧边栏" : "收起侧边栏"} placement="right">
+          <Button
+            type="text"
+            icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
+            onClick={() => onCollapse?.(!collapsed)}
+            className="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 sidebar-toggle-btn"
+            style={{
+              borderRadius: '0 6px 6px 0',
+              boxShadow: '1px 0 3px rgba(0,0,0,0.1)',
+              fontSize: '12px'
+            }}
           />
-        )}
+        </Tooltip>
       </div>
     </div>
   );

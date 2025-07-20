@@ -30,6 +30,12 @@ const modulePlaceholders: Record<string, string> = {
   paper_qa: '针对论文内容提问，帮助理解学术文献...',
   paper_write: '输入您的写作需求，AI将协助您完成论文...',
   paper_translate: '输入需要翻译的论文内容...',
+  document_analysis: '上传或输入文档内容进行分析...',
+  calculator: '输入数学表达式或计算问题...',
+  image_generator: '描述您想要生成的图像...',
+  data_analysis: '输入数据或上传文件进行分析...',
+  user_profile: '管理您的个人设置和偏好...',
+  help: '搜索帮助文档或常见问题...',
 };
 
 // 自定义停止按钮图标

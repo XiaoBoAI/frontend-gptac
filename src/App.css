@@ -58,3 +58,373 @@
 .ant-list-item-meta-description > * {
   margin: 0 !important;
 }
+
+/* 侧边栏样式优化 */
+.sidebar {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* 导航按钮悬停效果 */
+.sidebar .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 历史记录项悬停效果 */
+.sidebar .ant-list-item:hover {
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* 渐变背景效果 */
+.sidebar .bg-gradient-to-r {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 当前区域指示器动画 */
+.sidebar .current-section-indicator {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 折叠状态下的图标导航样式 */
+.sidebar.collapsed .ant-btn {
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* 确保内容区域在侧边栏折叠时正确调整 */
+.App {
+  transition: all 0.3s ease;
+}
+
+/* 优化滚动条样式 */
+.sidebar .ant-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+
+/* 侧边栏样式优化 */
+.sidebar {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* 导航按钮悬停效果 */
+.sidebar .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 历史记录项悬停效果 */
+.sidebar .ant-list-item:hover {
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* 渐变背景效果 */
+.sidebar .bg-gradient-to-r {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 底部导航图标样式 */
+.bottom-nav-container {
+  background: linear-gradient(to top, #f8fafc, #ffffff);
+  border-top: 1px solid #e5e7eb;
+}
+
+.bottom-nav-btn {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.bottom-nav-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 收起按钮样式 */
+.sidebar-toggle-btn {
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  transform: translateX(2px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* 确保内容区域在侧边栏折叠时正确调整 */
+.App {
+  transition: all 0.3s ease;
+}
+
+/* 优化滚动条样式 */
+.sidebar .ant-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 工具提示样式优化 */
+.ant-tooltip-inner {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* 侧边栏折叠时的过渡效果 */
+.sidebar {
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0 !important;
+  opacity: 0;
+}
+
+/* 底部导航按钮的激活状态 */
+.bottom-nav-btn.ant-btn-primary {
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* 收起按钮的悬停效果增强 */
+.sidebar-toggle-btn:hover {
+  background-color: #f0f0f0 !important;
+  border-color: #d9d9d9 !important;
+}
+/* 侧边栏样式优化 */
+.sidebar {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  position: relative;
+  height: 100vh;
+}
+
+/* 侧边栏完全隐藏 */
+.sidebar.w-0 {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 导航按钮悬停效果 */
+.sidebar .ant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 历史记录项悬停效果 */
+.sidebar .ant-list-item:hover {
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+/* 渐变背景效果 */
+.sidebar .bg-gradient-to-r {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 底部导航图标样式 - 固定位置 */
+.bottom-nav-container {
+  background: linear-gradient(to top, #f8fafc, #ffffff);
+  border-top: 1px solid #e5e7eb;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.bottom-nav-btn {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.bottom-nav-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 收起按钮样式 */
+.sidebar-toggle-btn {
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  transform: translateX(2px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100% !important;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* 确保内容区域在侧边栏折叠时正确调整 */
+.App {
+  transition: all 0.3s ease;
+}
+
+/* 优化滚动条样式 */
+.sidebar .ant-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.sidebar .ant-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 工具提示样式优化 */
+.ant-tooltip-inner {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* 侧边栏折叠时的过渡效果 */
+.sidebar {
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+/* 底部导航按钮的激活状态 */
+.bottom-nav-btn.ant-btn-primary {
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* 收起按钮的悬停效果增强 */
+.sidebar-toggle-btn:hover {
+  background-color: #f0f0f0 !important;
+  border-color: #d9d9d9 !important;
+}
+
+/* 确保侧边栏完全隐藏时的样式 */
+.sidebar.w-0.opacity-0 {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 历史记录区域样式 - 确保不覆盖底部导航 */
+.sidebar .ant-list {
+  padding-bottom: 60px; /* 为底部导航留出空间 */
+}
+
+/* 箭头图标样式优化 */
+.sidebar-toggle-btn .anticon {
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover .anticon {
+  transform: scale(1.1);
+}
+
+/* 底部导航的毛玻璃效果 */
+.bottom-nav-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(229, 231, 235, 0.8);
+}
+
+/* 确保侧边栏内容不被底部导航遮挡 */
+.sidebar > *:not(.bottom-nav-container) {
+  z-index: 1;
+}
+
+.bottom-nav-container {
+  z-index: 10;
+}

@@ -42,6 +42,7 @@ function App() {
   const [selectedModel, setSelectedModel] = useState('deep');
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const currentHistoryIdRef = useRef<string | null>(null);
   
   // 存储每个历史记录的WebSocket连接
@@ -58,7 +59,7 @@ function App() {
     user_request: '',
     special_kwargs: {}
   });
-  const [url] = useState('ws://localhost:28000/main');
+  const [url] = useState('ws://localhost:28001/main');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -178,7 +179,7 @@ function App() {
             const aiResponse = lastConversation[1];
             console.log('aiResponse:', aiResponse);
             
-                          // 重置回复超时定时器
+              // 重置回复超时定时器
               resetResponseTimeout();
               
               // 更新历史记录中的流式回复
@@ -292,6 +293,8 @@ function App() {
         historyRecords={historyRecords}
         onHistorySelect={handleHistorySelect}
         currentHistoryId={currentHistoryId}
+        collapsed={sidebarCollapsed}
+        onCollapse={setSidebarCollapsed}
       />
       <div className="flex flex-col flex-1 relative bg-white">
         {/* 右上角个人账号入口 */}
