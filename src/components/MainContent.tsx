@@ -1,6 +1,6 @@
 import React from 'react';
 import { Avatar, Typography } from 'antd';
-import { UserOutlined, RobotOutlined } from '@ant-design/icons';
+import { UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -17,6 +17,7 @@ interface MainContentProps {
   messagesEndRef: React.RefObject<HTMLDivElement>;
   isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
+  isWaiting?: boolean; // 是否正在等待回复
 }
 
 const MainContent: React.FC<MainContentProps> = ({ 
@@ -24,7 +25,8 @@ const MainContent: React.FC<MainContentProps> = ({
   messages, 
   messagesEndRef, 
   isEmpty,
-  isStreaming = false
+  isStreaming = false,
+  isWaiting = false
 }) => {
   const getModuleTitle = (module: string) => {
     const titles = {
@@ -66,12 +68,12 @@ const MainContent: React.FC<MainContentProps> = ({
       'academic_chat': '🎓',
       'paper_qa': '❓',
       'paper_write': '✍️',
-      'paper_translate': '',
+      'paper_translate': '��',
       'document_analysis': '📄',
       'calculator': '🧮',
       'image_generator': '🎨',
       'data_analysis': '📊',
-      'user_profile': '',
+      'user_profile': '��',
       'help': '❓'
     };
     return icons[module as keyof typeof icons] || '💬';
@@ -187,9 +189,9 @@ const MainContent: React.FC<MainContentProps> = ({
                         {message.text}
                       </ReactMarkdown>
                       {/* 如果是最后一条消息且正在流式回复，显示光标 */}
-                      {index === messages.length - 1 && isStreaming && (
+                      {/* {index === messages.length - 1 && isStreaming && (
                         <span className="inline-block w-2 h-5 bg-green-500 ml-1 animate-pulse"></span>
-                      )}
+                      )} */}
                     </div>
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
@@ -211,10 +213,39 @@ const MainContent: React.FC<MainContentProps> = ({
             </div>
           </div>
         ))}
+        
+        {/* 等待回复的动态图标 */}
+        {isWaiting && (
+          <div className="flex justify-start mb-6">
+            <div className="flex max-w-3xl flex-row">
+              {/* 机器人头像 */}
+              <div className="flex-shrink-0 mr-3">
+                <Avatar
+                  size={40}
+                  icon={<RobotOutlined />}
+                  style={{
+                    backgroundColor: '#52c41a',
+                    color: 'white'
+                  }}
+                />
+              </div>
+              
+              {/* 等待动画 */}
+              <div className="flex-1 text-left">
+                <div className="inline-block px-6 py-4 rounded-2xl bg-gray-100 text-gray-800">
+                  <div className="flex items-center space-x-2">
+                    <LoadingOutlined style={{ fontSize: 16, color: '#52c41a' }} />
+                    <span className="text-gray-600">正在回复中...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
     </div>
   );
 };
 
-export default MainContent; 
+export default MainContent;

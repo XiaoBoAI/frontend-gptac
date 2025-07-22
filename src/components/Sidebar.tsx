@@ -21,7 +21,8 @@ import {
   CalculatorOutlined,
   PictureOutlined,
   UserOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -93,6 +94,7 @@ interface SidebarProps {
   currentHistoryId: string | null;
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
+  onDeleteHistory?: (historyId: string) => void; // 添加删除历史记录的回调
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -102,7 +104,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onHistorySelect, 
   currentHistoryId,
   collapsed = false,
-  onCollapse
+  onCollapse,
+  onDeleteHistory
 }) => {
   const [activeSection, setActiveSection] = useState('chat');
 
@@ -169,6 +172,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const currentSection = getCurrentSection();
 
+  // 处理删除历史记录
+  const handleDeleteHistory = (e: React.MouseEvent, historyId: string) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发选择事件
+    onDeleteHistory?.(historyId);
+  };
+
   return (
     <div className="flex relative">
       {/* 主侧边栏 */}
@@ -219,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               dataSource={historyRecords.slice(0, 8)} // 限制显示数量
               renderItem={(record) => (
                 <List.Item
-                  className={`cursor-pointer rounded-md mb-1 transition-colors ${
+                  className={`group cursor-pointer rounded-md mb-1 transition-colors ${
                     currentHistoryId === record.id 
                       ? 'bg-blue-50 border-blue-200' 
                       : 'hover:bg-gray-50'
@@ -242,7 +251,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                           />
                         )}
                       </div>
-                      <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
+                      <div className="flex items-center gap-1">
+                        <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
+                        {/* 删除按钮 - 只在非流式回复时显示 */}
+                        {!record.isStreaming && (
+                          <Tooltip title="删除对话">
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              onClick={(e) => handleDeleteHistory(e, record.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 4px',
+                                minWidth: 'auto',
+                                height: 'auto',
+                                color: '#999'
+                              }}
+                            />
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
                     <div className="text-xs font-medium text-gray-700 truncate">
                       {getDisplayTitle(record)}

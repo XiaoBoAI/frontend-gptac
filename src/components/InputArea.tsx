@@ -5,10 +5,11 @@ import React, { useRef } from 'react';
 const { TextArea } = Input;
 
 const modelList = [
-  { key: 'deep', label: '深度思考', icon: <span style={{fontSize:18}}>🧠</span>, description: '适合复杂推理和深度分析' },
-  { key: 'search', label: '全网搜索', icon: <GlobalOutlined />, description: '实时搜索最新信息' },
-  { key: 'creative', label: '创意写作', icon: <span style={{fontSize:18}}>✨</span>, description: '适合创意和写作任务' },
-  { key: 'academic', label: '学术助手', icon: <span style={{fontSize:18}}>🎓</span>, description: '专注于学术研究和论文' },
+  { key: 'deepseek-chat', label: '深度对话', icon: <span style={{fontSize:18}}>🎓</span>, description: '适合对话和写作' },
+  { key: 'deepseek-reasoner', label: '深度思考', icon: <span style={{fontSize:18}}>🧠</span>, description: '适合复杂推理和深度分析' },
+  //{ key: 'search', label: '全网搜索', icon: <GlobalOutlined />, description: '实时搜索最新信息' },
+//   { key: 'creative', label: '创意写作', icon: <span style={{fontSize:18}}>✨</span>, description: '适合创意和写作任务' },
+//   { key: 'academic', label: '学术助手', icon: <span style={{fontSize:18}}>🎓</span>, description: '专注于学术研究和论文' },
 ];
 
 interface InputAreaProps {
@@ -54,7 +55,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   onStopStreaming,
   currentModule = 'ai_chat',
   isEmpty = false,
-  selectedModel = 'deep',
+  selectedModel = 'deepseek-chat',
   setSelectedModel,
   isStreaming = false,
 }) => {
@@ -179,17 +180,6 @@ const InputArea: React.FC<InputAreaProps> = ({
               {modelList.find(m => m.key === selectedModel)?.label || '深度思考'} <DownOutlined />
             </Button>
           </Dropdown>
-          
-          {/* 清空按钮 */}
-          <Button
-            icon={<ClearOutlined />}
-            type="text"
-            size="small"
-            onClick={onClear}
-            style={{ color: '#666', fontSize: 12 }}
-          >
-            清空对话
-          </Button>
         </div>
       </div>
     </div>

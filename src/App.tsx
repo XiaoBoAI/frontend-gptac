@@ -9,11 +9,13 @@ import logoVite from './assets/logo-vite.svg'
 import logoElectron from './assets/logo-electron.svg'
 import './App.css'
 import { UserInterfaceMsg, ChatMessage } from './Com'
-import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col } from 'antd';
+import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip } from 'antd';
 import {
   SendOutlined,
   UserOutlined,
-  RobotOutlined
+  RobotOutlined,
+  DownOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import './App.css';
 import Sidebar from './components/Sidebar';
@@ -22,6 +24,7 @@ import MainContent from './components/MainContent';
 import InputArea from './components/InputArea';
 
 const { Header, Content, Footer } = Layout;
+const { Text } = Typography;
 
 // 历史记录接口
 interface HistoryRecord {
@@ -39,10 +42,11 @@ interface HistoryRecord {
 function App() {
   const [currentModule, setCurrentModule] = useState('ai_chat');
   const [ui_maininput, set_ui_maininput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('deep');
+  const [selectedModel, setSelectedModel] = useState('deepseek-chat'); // 修改默认值为 'deepseek-chat'
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
   const currentHistoryIdRef = useRef<string | null>(null);
   
   // 存储每个历史记录的WebSocket连接
@@ -59,7 +63,7 @@ function App() {
     user_request: '',
     special_kwargs: {}
   });
-  const [url] = useState('ws://localhost:28001/main');
+  const [url] = useState('ws://localhost:28000/main');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -141,6 +145,9 @@ function App() {
     set_ui_maininput('');
     MainUserComInterface.current.main_input = '';
 
+    // 设置等待状态
+    setIsWaiting(true);
+
     // 创建WebSocket连接
     const ws = new WebSocket(url);
     websocketConnections.current.set(usedHistoryId!, ws);
@@ -155,51 +162,59 @@ function App() {
       // 如果3秒内没有收到新消息，认为回复结束
       responseTimeoutId = setTimeout(() => {
         console.log('大模型停止回复，关闭连接');
-        ws.close();
-      }, 3000);
+        //ws.close();
+      }, 1000);
     };
 
     ws.onopen = () => {
       console.log('WebSocket connection opened for history:', usedHistoryId);
+
+      console.log('selectedModel:', selectedModel);
       ws.send(JSON.stringify({
         ...MainUserComInterface.current,
         main_input: userMessage.text,
-        llm_kwargs: { model: selectedModel }
+        llm_kwargs: {llm_model: selectedModel}
       }));
     };
 
     ws.onmessage = (event) => {
       try {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+        //console.log('parsedMessage:', parsedMessage);
         const botMessage = parsedMessage.chatbot;
-        console.log('收到消息:', event.data);
+        
         if (botMessage && botMessage.length > 0) {
           const lastConversation = botMessage[botMessage.length - 1];
           if (lastConversation && lastConversation.length > 1) {
             const aiResponse = lastConversation[1];
-            console.log('aiResponse:', aiResponse);
             
-              // 重置回复超时定时器
-              resetResponseTimeout();
-              
-              // 更新历史记录中的流式回复
-              setHistoryRecords(prev => prev.map(record => {
-                if (record.id === usedHistoryId) {
-                  // 直接更新流式回复的临时文本
-                  return {
-                    ...record,
-                    streamingText: aiResponse,
-                    isStreaming: true
-                  };
-                }
-                return record;
-              }));
+            // 重置回复超时定时器
+            resetResponseTimeout();
+            
+            // 更新历史记录中的流式回复
+            setHistoryRecords(prev => prev.map(record => {
+              if (record.id === usedHistoryId) {
+                // 直接更新流式回复的临时文本
+                return {
+                  ...record,
+                  streamingText: aiResponse,
+                  isStreaming: true
+                };
+              }
+              return record;
+            }));
+            
+            // 只有在有实际内容时才取消等待状态
+            if (aiResponse && aiResponse.trim().length > 0) {
+              setIsWaiting(false);
+            }
           }
         }
         
         MainUserComInterface.current.history = parsedMessage.history;
       } catch (error) {
         console.error('Error parsing message:', error);
+        setIsWaiting(false); // 出错时也要取消等待状态
       }
     };
 
@@ -211,6 +226,9 @@ function App() {
       if (responseTimeoutId) {
         clearTimeout(responseTimeoutId);
       }
+      
+      // 取消等待状态
+      setIsWaiting(false);
       
       // WebSocket连接关闭时，将流式回复转换为最终消息
       setHistoryRecords(prev => prev.map(record => {
@@ -234,6 +252,9 @@ function App() {
       if (responseTimeoutId) {
         clearTimeout(responseTimeoutId);
       }
+      
+      // 出错时取消等待状态
+      setIsWaiting(false);
     };
   };
 
@@ -282,6 +303,16 @@ function App() {
     MainUserComInterface.current.main_input = '';
   };
 
+  // 删除历史记录
+  const handleDeleteHistory = (historyId: string) => {
+    setHistoryRecords(prev => prev.filter(record => record.id !== historyId));
+    
+    // 如果删除的是当前选中的历史记录，清空当前选择
+    if (currentHistoryId === historyId) {
+      setCurrentHistoryId(null);
+    }
+  };
+
   // 获取当前显示的消息
   const currentMessages = getCurrentMessages();
 
@@ -295,6 +326,7 @@ function App() {
         currentHistoryId={currentHistoryId}
         collapsed={sidebarCollapsed}
         onCollapse={setSidebarCollapsed}
+        onDeleteHistory={handleDeleteHistory}
       />
       <div className="flex flex-col flex-1 relative bg-white">
         {/* 右上角个人账号入口 */}
@@ -309,6 +341,7 @@ function App() {
           messagesEndRef={messagesEndRef}
           isEmpty={currentMessages.length === 0}
           isStreaming={historyRecords.find(r => r.id === currentHistoryId)?.isStreaming || false}
+          isWaiting={isWaiting} // 传递等待状态
         />
         <InputArea 
           value={ui_maininput} 
