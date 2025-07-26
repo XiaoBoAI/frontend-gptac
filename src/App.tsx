@@ -48,10 +48,10 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
   const currentHistoryIdRef = useRef<string | null>(null);
-  
+
   // 存储每个历史记录的WebSocket连接
   const websocketConnections = useRef<Map<string, WebSocket>>(new Map());
-  
+
   const MainUserComInterface = useRef<UserInterfaceMsg>({
     function: 'chat',
     main_input: '',
@@ -63,7 +63,7 @@ function App() {
     user_request: '',
     special_kwargs: {}
   });
-  const [url] = useState('ws://localhost:28000/main');
+  const [url] = useState(import.meta.env.VITE_WEBSOCKET_URL ?? 'ws://localhost:28000/main');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -75,12 +75,12 @@ function App() {
     if (!currentHistoryId) return [];
     const record = historyRecords.find(r => r.id === currentHistoryId);
     if (!record) return [];
-    
+
     // 如果有流式回复，添加临时消息
     if (record.isStreaming && record.streamingText) {
       return [...record.messages, { sender: 'bot', text: record.streamingText }];
     }
-    
+
     return record.messages;
   };
 
@@ -107,10 +107,10 @@ function App() {
 
   const handleSendMessage = async () => {
     if (!ui_maininput.trim()) return;
-    
+
     // 添加用户消息到当前对话
     const userMessage: ChatMessage = { sender: 'user', text: ui_maininput };
-    
+
     // 如果是新对话，创建历史记录
     let usedHistoryId = currentHistoryId;
     if (!currentHistoryId) {
@@ -129,10 +129,10 @@ function App() {
       usedHistoryId = newHistoryId;
     } else {
       // 更新现有历史记录
-      setHistoryRecords(prev => prev.map(record => 
-        record.id === usedHistoryId 
-          ? { 
-              ...record, 
+      setHistoryRecords(prev => prev.map(record =>
+        record.id === usedHistoryId
+          ? {
+              ...record,
               messages: [...record.messages, userMessage],
               isStreaming: true,
               streamingText: ''
@@ -151,10 +151,10 @@ function App() {
     // 创建WebSocket连接
     const ws = new WebSocket(url);
     websocketConnections.current.set(usedHistoryId!, ws);
-    
+
     // 用于检测大模型是否停止回复的定时器
     let responseTimeoutId: NodeJS.Timeout | null = null;
-    
+
     const resetResponseTimeout = () => {
       if (responseTimeoutId) {
         clearTimeout(responseTimeoutId);
@@ -182,15 +182,15 @@ function App() {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
         //console.log('parsedMessage:', parsedMessage);
         const botMessage = parsedMessage.chatbot;
-        
+
         if (botMessage && botMessage.length > 0) {
           const lastConversation = botMessage[botMessage.length - 1];
           if (lastConversation && lastConversation.length > 1) {
             const aiResponse = lastConversation[1];
-            
+
             // 重置回复超时定时器
             resetResponseTimeout();
-            
+
             // 更新历史记录中的流式回复
             setHistoryRecords(prev => prev.map(record => {
               if (record.id === usedHistoryId) {
@@ -203,14 +203,14 @@ function App() {
               }
               return record;
             }));
-            
+
             // 只有在有实际内容时才取消等待状态
             if (aiResponse && aiResponse.trim().length > 0) {
               setIsWaiting(false);
             }
           }
         }
-        
+
         MainUserComInterface.current.history = parsedMessage.history;
       } catch (error) {
         console.error('Error parsing message:', error);
@@ -221,15 +221,15 @@ function App() {
     ws.onclose = (event) => {
       console.log('WebSocket connection closed for history:', usedHistoryId, event);
       websocketConnections.current.delete(usedHistoryId!);
-      
+
       // 清除回复超时定时器
       if (responseTimeoutId) {
         clearTimeout(responseTimeoutId);
       }
-      
+
       // 取消等待状态
       setIsWaiting(false);
-      
+
       // WebSocket连接关闭时，将流式回复转换为最终消息
       setHistoryRecords(prev => prev.map(record => {
         if (record.id === usedHistoryId && record.isStreaming && record.streamingText) {
@@ -247,12 +247,12 @@ function App() {
     ws.onerror = (event) => {
       console.error('WebSocket error for history:', usedHistoryId, event);
       websocketConnections.current.delete(usedHistoryId!);
-      
+
       // 清除回复超时定时器
       if (responseTimeoutId) {
         clearTimeout(responseTimeoutId);
       }
-      
+
       // 出错时取消等待状态
       setIsWaiting(false);
     };
@@ -270,7 +270,7 @@ function App() {
         ws.close();
         websocketConnections.current.delete(currentHistoryId);
       }
-      
+
       // 停止流式回复时，将当前流式文本转换为最终消息
       setHistoryRecords(prev => prev.map(record => {
         if (record.id === currentHistoryId && record.isStreaming && record.streamingText) {
@@ -306,7 +306,7 @@ function App() {
   // 删除历史记录
   const handleDeleteHistory = (historyId: string) => {
     setHistoryRecords(prev => prev.filter(record => record.id !== historyId));
-    
+
     // 如果删除的是当前选中的历史记录，清空当前选择
     if (currentHistoryId === historyId) {
       setCurrentHistoryId(null);
@@ -318,7 +318,7 @@ function App() {
 
   return (
     <div className="App overflow-hidden h-screen w-screen flex flex-row">
-      <Sidebar 
+      <Sidebar
         onSelectModule={handleModuleChange}
         currentModule={currentModule}
         historyRecords={historyRecords}
@@ -335,18 +335,18 @@ function App() {
           <span className="ml-2 font-medium text-base">张某某</span>
         </div> */}
         {/* 内容区 */}
-        <MainContent 
-          currentModule={currentModule} 
-          messages={currentMessages} 
+        <MainContent
+          currentModule={currentModule}
+          messages={currentMessages}
           messagesEndRef={messagesEndRef}
           isEmpty={currentMessages.length === 0}
           isStreaming={historyRecords.find(r => r.id === currentHistoryId)?.isStreaming || false}
           isWaiting={isWaiting} // 传递等待状态
         />
-        <InputArea 
-          value={ui_maininput} 
-          onChange={handleInputChange} 
-          onSend={handleSendMessage} 
+        <InputArea
+          value={ui_maininput}
+          onChange={handleInputChange}
+          onSend={handleSendMessage}
           onClear={handleClear}
           onStopStreaming={handleStopStreaming}
           currentModule={currentModule}

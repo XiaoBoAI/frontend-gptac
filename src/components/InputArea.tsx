@@ -1,6 +1,7 @@
-import { Input, Button, Dropdown, Menu, Tooltip } from 'antd';
-import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutlined, StopOutlined } from '@ant-design/icons';
-import React, { useRef } from 'react';
+import { Input, Button, Dropdown, Menu, Tooltip, message, Upload } from 'antd';
+import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
+import React, { useRef, useState } from 'react';
+import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/lib/interface';
 
 const { TextArea } = Input;
 
@@ -46,6 +47,50 @@ const StopCircleIcon: React.FC<{size?:number}> = ({size=22}) => (
     <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill="#222" />
   </svg>
 );
+
+// 处理文件上传
+const handleUpload = async (options: RcCustomRequestOptions) => {
+  const { file, onProgress, onSuccess, onError } = options;
+  const formData = new FormData();
+  formData.append('files', file);
+
+  // 使用代理路径
+  const uploadUrl = '/upload';
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', event => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress?.({ percent });
+      }
+    });
+
+    xhr.addEventListener('load', async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const result = JSON.parse(xhr.responseText);
+        message.success(`${(file as File).name} 上传成功`);
+        onSuccess?.(result);
+      } else {
+        throw new Error(`上传失败: ${xhr.statusText}`);
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      const error = new Error('上传失败');
+      console.error('上传错误:', error);
+      message.error(`${(file as File).name} 上传失败`);
+      onError?.(error);
+    });
+
+    xhr.open('POST', uploadUrl, true);
+    xhr.send(formData);
+  } catch (error) {
+    console.error('上传错误:', error);
+    message.error(`${(file as File).name} 上传失败`);
+    onError?.(error as Error);
+  }
+};
 
 const InputArea: React.FC<InputAreaProps> = ({
   value,
@@ -180,10 +225,19 @@ const InputArea: React.FC<InputAreaProps> = ({
               {modelList.find(m => m.key === selectedModel)?.label || '深度思考'} <DownOutlined />
             </Button>
           </Dropdown>
+
+          <Upload
+            multiple
+            showUploadList={false}
+            customRequest={handleUpload}
+          >
+            <Button icon={<UploadOutlined />}>上传文件</Button>
+          </Upload>
+
         </div>
       </div>
     </div>
   );
 };
 
-export default InputArea; 
+export default InputArea;
