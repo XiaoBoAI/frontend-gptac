@@ -1,9 +1,10 @@
 import { Avatar, Menu, List, Typography, Badge, Button, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
-import { 
-  ClockCircleOutlined, 
-  MessageOutlined, 
+import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
+import {
+  ClockCircleOutlined,
+  MessageOutlined,
   LoadingOutlined,
   LeftOutlined,
   RightOutlined,
@@ -75,34 +76,33 @@ const navigationSections = [
 ];
 
 // 历史记录接口
-interface HistoryRecord {
+export interface AdvancedSessionRecord {
   id: string;
   module: string;
   title: string;
-  messages: any[];
   timestamp: number;
-  model: string;
   isStreaming?: boolean;
   streamingText?: string;
+  user_com: UserInterfaceMsg;
 }
 
 interface SidebarProps {
   onSelectModule: (key: string) => void;
   currentModule: string;
-  historyRecords: HistoryRecord[];
+  AdvancedSessionRecords: AdvancedSessionRecord[];
   onHistorySelect: (historyId: string) => void;
-  currentHistoryId: string | null;
+  currentSessionId: string | null;
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
   onDeleteHistory?: (historyId: string) => void; // 添加删除历史记录的回调
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  onSelectModule, 
-  currentModule, 
-  historyRecords, 
-  onHistorySelect, 
-  currentHistoryId,
+const Sidebar: React.FC<SidebarProps> = ({
+  onSelectModule,
+  currentModule,
+  AdvancedSessionRecords,
+  onHistorySelect,
+  currentSessionId,
   collapsed = false,
   onCollapse,
   onDeleteHistory
@@ -111,7 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // 根据当前模块自动设置活跃的导航区域
   useEffect(() => {
-    const currentSection = navigationSections.find(section => 
+    const currentSection = navigationSections.find(section =>
       section.items.some(item => item.key === currentModule)
     );
     if (currentSection) {
@@ -138,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
+
     if (days === 0) {
       return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } else if (days === 1) {
@@ -156,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return item?.icon || <MessageOutlined />;
   };
 
-  const getDisplayTitle = (record: HistoryRecord) => {
+  const getDisplayTitle = (record: AdvancedSessionRecord) => {
     if (record.isStreaming && record.streamingText) {
       const streamingPreview = record.streamingText.substring(0, 20);
       return `${record.title} (正在回复: ${streamingPreview}...)`;
@@ -165,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const getCurrentSection = () => {
-    return navigationSections.find(section => 
+    return navigationSections.find(section =>
       section.items.some(item => item.key === currentModule)
     ) || navigationSections[0];
   };
@@ -216,8 +216,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <ClockCircleOutlined className="mr-1" />
             历史对话
           </div>
-          
-          {historyRecords.length === 0 ? (
+
+          {AdvancedSessionRecords.length === 0 ? (
             <div className="text-gray-400 text-center text-xs py-4">
               <MessageOutlined className="text-lg mb-1 block" />
               暂无历史对话
@@ -225,12 +225,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <List
               size="small"
-              dataSource={historyRecords.slice(0, 8)} // 限制显示数量
+              dataSource={AdvancedSessionRecords.slice(0, 8)} // 限制显示数量
               renderItem={(record) => (
                 <List.Item
                   className={`group cursor-pointer rounded-md mb-1 transition-colors ${
-                    currentHistoryId === record.id 
-                      ? 'bg-blue-50 border-blue-200' 
+                    currentSessionId === record.id
+                      ? 'bg-blue-50 border-blue-200'
                       : 'hover:bg-gray-50'
                   } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
                   onClick={() => onHistorySelect(record.id)}
@@ -243,9 +243,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                           {getModuleIcon(record.module)}
                         </span>
                         {record.isStreaming && (
-                          <Badge 
-                            dot 
-                            color="green" 
+                          <Badge
+                            dot
+                            color="green"
                             className="mr-1"
                             title="正在回复"
                           />
@@ -301,8 +301,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   icon={section.icon}
                   onClick={() => handleSectionChange(section.key)}
                   className={`w-10 h-10 flex items-center justify-center bottom-nav-btn ${
-                    activeSection === section.key 
-                      ? 'bg-blue-500 text-white' 
+                    activeSection === section.key
+                      ? 'bg-blue-500 text-white'
                       : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
                   }`}
                   style={{
@@ -336,4 +336,4 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

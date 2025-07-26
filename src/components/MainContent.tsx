@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Avatar, Typography } from 'antd';
 import { UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
@@ -13,21 +13,49 @@ interface ChatMessage {
 
 interface MainContentProps {
   currentModule: string;
-  messages: ChatMessage[];
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  chatbot: string[][];
   isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
 }
 
-const MainContent: React.FC<MainContentProps> = ({ 
-  currentModule, 
-  messages, 
-  messagesEndRef, 
+const MainContent: React.FC<MainContentProps> = ({
+  currentModule,
+  chatbot,
   isEmpty,
   isStreaming = false,
   isWaiting = false
 }) => {
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    // loop chatbot, convert to ChatMessage[]
+    const message_buffer: ChatMessage[] = [];
+    for (let i = 0; i < chatbot.length; i++) {
+      const user_str_msg: string = chatbot[i][0];
+      const ai_str_msg: string = chatbot[i][1];
+      if (user_str_msg && user_str_msg !== '') {
+        message_buffer.push({
+          sender: 'user',
+          text: user_str_msg
+        });
+      }
+      if (ai_str_msg && ai_str_msg !== '') {
+        message_buffer.push({
+          sender: 'bot',
+          text: ai_str_msg
+        });
+      }
+    }
+    setMessages(message_buffer);
+    // set messages
+    (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
+  }, [chatbot]);
+
+
+
   const getModuleTitle = (module: string) => {
     const titles = {
       'ai_chat': 'AI对话',
@@ -124,7 +152,7 @@ const MainContent: React.FC<MainContentProps> = ({
                   }}
                 />
               </div>
-              
+
               {/* 消息内容 */}
               <div
                 className={`flex-1 ${
@@ -197,23 +225,23 @@ const MainContent: React.FC<MainContentProps> = ({
                     <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
                   )}
                 </div>
-                
+
                 {/* 发送时间 */}
                 <div
                   className={`text-xs text-gray-400 mt-2 ${
                     message.sender === 'user' ? 'text-right' : 'text-left'
                   }`}
                 >
-                  {new Date().toLocaleTimeString('zh-CN', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                  {new Date().toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}
                 </div>
               </div>
             </div>
           </div>
         ))}
-        
+
         {/* 等待回复的动态图标 */}
         {isWaiting && (
           <div className="flex justify-start mb-6">
@@ -229,7 +257,7 @@ const MainContent: React.FC<MainContentProps> = ({
                   }}
                 />
               </div>
-              
+
               {/* 等待动画 */}
               <div className="flex-1 text-left">
                 <div className="inline-block px-6 py-4 rounded-2xl bg-gray-100 text-gray-800">
