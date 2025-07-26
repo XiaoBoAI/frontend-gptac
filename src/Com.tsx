@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 export interface UserInterfaceMsg {
   function: string;
@@ -80,7 +79,6 @@ export function useUserInterfaceMsg() {
   }, [chatbotCookies]);
 
   // ------------------------ system_prompt (map to UserInterfaceMsg.system_prompt) -------------------------
-  // 这里可以添加 system_prompt 的状态和处理逻辑，如果需要的话
   const [systemPrompt, setSystemPrompt] = useState('');
   useEffect(() => {
     AUTO_USER_COM_INTERFACE.current.system_prompt = systemPrompt;
