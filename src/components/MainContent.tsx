@@ -12,7 +12,7 @@ interface ChatMessage {
 }
 
 interface MainContentProps {
-  currentModule: string;
+  currentSessionType: string;
   chatbot: string[][];
   isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
@@ -20,7 +20,7 @@ interface MainContentProps {
 }
 
 const MainContent: React.FC<MainContentProps> = ({
-  currentModule,
+  currentSessionType,
   chatbot,
   isEmpty,
   isStreaming = false,
@@ -112,12 +112,12 @@ const MainContent: React.FC<MainContentProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <div className="text-center max-w-2xl">
-          <div className="text-6xl mb-6">{getModuleIcon(currentModule)}</div>
+          <div className="text-6xl mb-6">{getModuleIcon(currentSessionType)}</div>
           <h1 className="text-3xl font-bold text-gray-800 mb-4">
-            {getModuleTitle(currentModule)}
+            {getModuleTitle(currentSessionType)}
           </h1>
           <p className="text-lg text-gray-600 leading-relaxed">
-            {getModuleDescription(currentModule)}
+            {getModuleDescription(currentSessionType)}
           </p>
           <div className="mt-8 text-sm text-gray-500">
             在下方输入框中开始您的对话...

@@ -57,12 +57,14 @@ function App() {
   const [sessionRecords, setSessionRecords] = useState<AdvancedSessionRecord[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [currentSessionType, setCurrentSessionType] = useState('ai_chat'); // 当前会话类型 （ai_chat, academic_chat, paper_qa, paper_write, paper_translate, document_analysis, calculator, image_generator, data_analysis, user_profile, help）
   const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
 
   const CreateNewSession = () => {
-    if (currentSessionId) {
-      UpdateSessionRecord();
-    }
+    //console.log('currentSessionId:', currentSessionId);
+    // if (currentSessionId) {
+    //   UpdateSessionRecord();
+    // }
     const newSessionId = Date.now().toString();
     setChatbot([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
     setChatbotCookies({}); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
@@ -87,10 +89,15 @@ function App() {
     const sessionRecord = sessionRecords.find(record => record.id === currentSessionId);
     // find session record by id
     if (sessionRecord) {
-      console.log('更新会话记录' + currentSessionId);
+      //console.log('chatbot:', chatbot);
+      //console.log('更新会话记录' + currentSessionId);
       sessionRecord.module = currentModule;
       sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : '');
+<<<<<<< HEAD
       sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
+=======
+      sessionRecord.user_com = AUTO_USER_COM_INTERFACE.current;
+>>>>>>> 7f24364 (update currentSessionType)
       sessionRecord.streamingText = '';
       sessionRecord.timestamp = Date.now();
     }
@@ -115,17 +122,30 @@ function App() {
     const ws = await beginWebSocketCom(
       // AUTO_USER_COM_INTERFACE,
       AUTO_USER_COM_INTERFACE.current,
+<<<<<<< HEAD
       // isUploadMode
       isUploadMode,
       uploadRequest,
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+=======
+      
+      // onMessage callback
+      (event) => {
+        const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+        //console.log('parsedMessage:', parsedMessage);
+>>>>>>> 7f24364 (update currentSessionType)
         onComReceived(parsedMessage);
       },
       // onOpen callback
       () => {
+<<<<<<< HEAD
         // console.log('WebSocket connection opened for history:', usedSessionId);
+=======
+        //console.log('WebSocket connection opened for history:', usedSessionId);
+        //console.log('selectedModel:', selectedModel);
+>>>>>>> 7f24364 (update currentSessionType)
       },
       // onError callback
       (event) => {
@@ -146,7 +166,8 @@ function App() {
     CreateNewSession();
   };
 
-  const handleModuleChange = (module: string) => {
+  const handleSessionTypeChange = (sessionType: string) => {
+    setCurrentSessionType(sessionType);
     CreateNewSession();
   };
 
@@ -175,8 +196,8 @@ function App() {
   return (
     <div className="App overflow-hidden h-screen w-screen flex flex-row">
       <Sidebar
-        onSelectModule={handleModuleChange}
-        currentModule={currentModule}
+        onSelectSessionType={handleSessionTypeChange}
+        currentSessionType={currentSessionType}
         AdvancedSessionRecords={sessionRecords}
         onHistorySelect={handleHistorySelect}
         currentSessionId={currentSessionId}
@@ -192,7 +213,7 @@ function App() {
         </div> */}
         {/* 内容区 */}
         <MainContent
-          currentModule={currentModule}
+          currentSessionType={currentSessionType}
           chatbot={chatbot}
           isEmpty={chatbot.length === 0}
           isStreaming={sessionRecords.find(r => r.id === currentSessionId)?.isStreaming || false}

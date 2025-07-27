@@ -77,7 +77,7 @@ export default defineConfig(({ command, mode }) => {
       })()),
       proxy: {
         '/upload': {
-          target: 'http://localhost:38000',
+          target: 'http://localhost:28000',
           changeOrigin: true,
           secure: false,
           configure: (proxy, options) => {
