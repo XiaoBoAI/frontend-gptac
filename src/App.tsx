@@ -1,5 +1,6 @@
 // 导入必要的React钩子
 import { useState, useRef, useEffect } from 'react'
+import lodash from 'lodash';
 import UpdateElectron from '@/components/update'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -75,7 +76,7 @@ function App() {
         id: newSessionId,
         module: currentModule,
         title: '新会话',
-        user_com: AUTO_USER_COM_INTERFACE.current,
+        user_com: lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current),
         streamingText: '',
         timestamp: Date.now(),
         isStreaming: false // 新会话默认不在流式回复中
@@ -96,32 +97,31 @@ function App() {
       //console.log('更新会话记录' + currentSessionId);
       sessionRecord.module = currentModule;
       sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : '');
-      sessionRecord.user_com = AUTO_USER_COM_INTERFACE.current;
+      sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
       sessionRecord.streamingText = '';
       sessionRecord.timestamp = Date.now();
     }
   }
 
-  const handleSendMessage = async () => {
-    if (currentSessionId === null) {
-      CreateNewSession();
-    }
+  const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
+    if (currentSessionId === null) { CreateNewSession(); }
     UpdateSessionRecord();
     setIsWaiting(true);
     // 使用 useWebSocketCom hook 创建 WebSocket 连接
     const ws = await beginWebSocketCom(
+      // AUTO_USER_COM_INTERFACE,
       AUTO_USER_COM_INTERFACE.current,
-      
+      // isUploadMode
+      isUploadMode,
+      uploadRequest,
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-        //console.log('parsedMessage:', parsedMessage);
         onComReceived(parsedMessage);
       },
       // onOpen callback
       () => {
-        //console.log('WebSocket connection opened for history:', usedSessionId);
-        //console.log('selectedModel:', selectedModel);
+        // console.log('WebSocket connection opened for history:', usedSessionId);
       },
       // onError callback
       (event) => {
