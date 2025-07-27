@@ -21,6 +21,7 @@ import HeaderBar from './components/HeaderBar';
 import MainContent from './components/MainContent';
 import InputArea from './components/InputArea';
 import Main from 'electron/main';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -81,11 +82,6 @@ function App() {
     ]);
   }
 
-  // 修复类型错误：将HTMLInputElement改为HTMLTextAreaElement
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMainInput(e.target.value);
-  };
-
   const UpdateSessionRecord = () => {
     const sessionRecord = sessionRecords.find(record => record.id === currentSessionId);
     // find session record by id
@@ -99,25 +95,36 @@ function App() {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (currentSessionId === null) {
-      CreateNewSession();
-    }
+  // 修复类型错误：将HTMLInputElement改为HTMLTextAreaElement
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMainInput(e.target.value);
+  };
+
+  const onFileUpload = async (uploadRequest: UploadRequestOption) => {
+    // const { file, onProgress, onSuccess, onError } = options;
+    handleSendMessage(true, uploadRequest);
+  }
+
+  const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
+    if (currentSessionId === null) { CreateNewSession(); }
     UpdateSessionRecord();
     setIsWaiting(true);
+
     // 使用 useWebSocketCom hook 创建 WebSocket 连接
     const ws = await beginWebSocketCom(
+      // AUTO_USER_COM_INTERFACE,
       AUTO_USER_COM_INTERFACE.current,
+      // isUploadMode
+      isUploadMode,
+      uploadRequest,
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-        // console.log(event.data);
         onComReceived(parsedMessage);
       },
       // onOpen callback
       () => {
         // console.log('WebSocket connection opened for history:', usedSessionId);
-        // console.log('selectedModel:', selectedModel);
       },
       // onError callback
       (event) => {
@@ -132,8 +139,6 @@ function App() {
         UpdateSessionRecord();
       }
     );
-
-
   };
 
   const handleClear = () => {
@@ -195,9 +200,10 @@ function App() {
         <InputArea
           value={MainInput}
           onChange={handleInputChange}
-          onSend={handleSendMessage}
+          onSend={()=>{handleSendMessage()}}
           onClear={handleClear}
           onStopStreaming={handleForceStop}
+          onFileUpload={onFileUpload}
           currentModule={currentModule}
           isEmpty={chatbot.length === 0}
           selectedModel={selectedModel}
