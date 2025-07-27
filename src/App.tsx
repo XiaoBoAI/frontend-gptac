@@ -46,8 +46,13 @@ function App() {
     setChatbot,
     history,
     setHistory,
-    onComReceived,
+    chatbotCookies,
     setChatbotCookies,
+    systemPrompt,
+    setSystemPrompt,
+    specialKwargs,
+    setSpecialKwargs,
+    onComReceived,
   } = useUserInterfaceMsg();
 
   // Use the WebSocket communication hook
@@ -183,6 +188,9 @@ function App() {
         collapsed={sidebarCollapsed}
         onCollapse={setSidebarCollapsed}
         onDeleteHistory={handleDeleteHistory}
+        setCurrentModule={setCurrentModule}
+        setSpecialKwargs={setSpecialKwargs}
+        specialKwargs={specialKwargs}
       />
       <div className="flex flex-col flex-1 relative bg-white">
         {/* 右上角个人账号入口 */}

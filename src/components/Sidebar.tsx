@@ -2,6 +2,7 @@ import { Avatar, Menu, List, Typography, Badge, Button, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
+import BasicFunctions from './BasicFunctions';
 import {
   ClockCircleOutlined,
   MessageOutlined,
@@ -95,6 +96,9 @@ interface SidebarProps {
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
   onDeleteHistory?: (historyId: string) => void; // 添加删除历史记录的回调
+  setCurrentModule: any,
+  setSpecialKwargs: any,
+  specialKwargs: any,
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -105,7 +109,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentSessionId,
   collapsed = false,
   onCollapse,
-  onDeleteHistory
+  onDeleteHistory,
+  setCurrentModule,
+  setSpecialKwargs,
+  specialKwargs,
 }) => {
   const [activeSection, setActiveSection] = useState('chat');
 
@@ -193,22 +200,32 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* 当前区域的菜单项 */}
-        <Menu
-          mode="inline"
-          selectedKeys={[currentModule]}
-          style={{ borderRight: 0, flex: 'none' }}
-          className="border-b border-gray-100"
-          items={currentSection.items.map(item => ({
-            key: item.key,
-            label: (
-              <div className="flex items-center">
-                <span className="mr-2 text-gray-600">{item.icon}</span>
-                {item.label}
-              </div>
-            ),
-          }))}
-          onClick={handleClick}
-        />
+        {activeSection === 'basic' ? (
+          <BasicFunctions
+            currentModule={currentModule}
+            onSelectModule={onSelectModule}
+            setCurrentModule={setCurrentModule}
+            setSpecialKwargs={setSpecialKwargs}
+            specialKwargs={specialKwargs}
+          />
+        ) : (
+          <Menu
+            mode="inline"
+            selectedKeys={[currentModule]}
+            style={{ borderRight: 0, flex: 'none' }}
+            className="border-b border-gray-100"
+            items={currentSection.items.map(item => ({
+              key: item.key,
+              label: (
+                <div className="flex items-center">
+                  <span className="mr-2 text-gray-600">{item.icon}</span>
+                  {item.label}
+                </div>
+              ),
+            }))}
+            onClick={handleClick}
+          />
+        )}
 
         {/* 历史记录区域 - 使用固定高度，确保底部导航固定 */}
         <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 280px)' }}>

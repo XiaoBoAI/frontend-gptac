@@ -86,6 +86,12 @@ export function useUserInterfaceMsg() {
     AUTO_USER_COM_INTERFACE.current.system_prompt = systemPrompt;
   }, [systemPrompt]);
 
+  // ------------------------ special_kwargs (map to UserInterfaceMsg.special_kwargs) -------------------------
+  const [specialKwargs, setSpecialKwargs] = useState<Record<string, any>>({});
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.special_kwargs = specialKwargs;
+  }, [specialKwargs]);
+
 
   const onComReceived = (received_msg: UserInterfaceMsg) => {
     // 更新状态
@@ -96,6 +102,7 @@ export function useUserInterfaceMsg() {
     setHistory(received_msg.history);
     setChatbotCookies(received_msg.chatbot_cookies);
     setSystemPrompt(received_msg.system_prompt);
+    setSpecialKwargs(received_msg.special_kwargs);
     // 这里可以添加其他处理逻辑，比如更新 UI 或者触发其他副作用
   }
 
@@ -111,8 +118,13 @@ export function useUserInterfaceMsg() {
     setChatbot,
     history,
     setHistory,
-    onComReceived,
+    chatbotCookies,
     setChatbotCookies,
+    systemPrompt,
+    setSystemPrompt,
+    specialKwargs,
+    setSpecialKwargs,
+    onComReceived,
   };
 }
 

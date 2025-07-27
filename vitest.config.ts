@@ -5,6 +5,9 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd())
 
+  // Ensure HTTP_URL is properly set with fallback
+  const httpUrl = env.HTTP_URL || 'http://localhost:3000'
+
   return {
     test: {
       root: __dirname,
@@ -12,13 +15,18 @@ export default defineConfig(({ mode }) => {
       testTimeout: 1000 * 29,
     },
     server: {
-      proxy: {
+      proxy: httpUrl ? {
         '/upload': {
-          target: env.VITE_UPLOAD_URL,
+          target: `${httpUrl}/upload`,
           changeOrigin: true,
           secure: false,
         },
-      },
+        '/core_functional': {
+          target: `${httpUrl}/core_functional`,
+          changeOrigin: true,
+          secure: false,
+        },
+      } : undefined,
     },
   }
 })
