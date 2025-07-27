@@ -87,8 +87,8 @@ export interface AdvancedSessionRecord {
 }
 
 interface SidebarProps {
-  onSelectModule: (key: string) => void;
-  currentModule: string;
+  onSelectSessionType: (key: string) => void;
+  currentSessionType: string;
   AdvancedSessionRecords: AdvancedSessionRecord[];
   onHistorySelect: (historyId: string) => void;
   currentSessionId: string | null;
@@ -98,8 +98,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  onSelectModule,
-  currentModule,
+  onSelectSessionType,
+  currentSessionType,
   AdvancedSessionRecords,
   onHistorySelect,
   currentSessionId,
@@ -112,15 +112,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   // 根据当前模块自动设置活跃的导航区域
   useEffect(() => {
     const currentSection = navigationSections.find(section =>
-      section.items.some(item => item.key === currentModule)
+      section.items.some(item => item.key === currentSessionType)
     );
     if (currentSection) {
       setActiveSection(currentSection.key);
     }
-  }, [currentModule]);
+  }, [currentSessionType]);
 
   const handleClick: MenuProps['onClick'] = (e) => {
-    onSelectModule(e.key);
+    onSelectSessionType(e.key);
+    //console.log('currentSessionType:', currentSessionType);
+    //console.log('e.key:', e.key);
   };
 
   // 处理底部导航区域切换
@@ -129,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     // 切换到该区域的第一个模块
     const section = navigationSections.find(s => s.key === sectionKey);
     if (section && section.items.length > 0) {
-      onSelectModule(section.items[0].key);
+      onSelectSessionType(section.items[0].key);
     }
   };
 
@@ -166,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const getCurrentSection = () => {
     return navigationSections.find(section =>
-      section.items.some(item => item.key === currentModule)
+      section.items.some(item => item.key === currentSessionType)
     ) || navigationSections[0];
   };
 
@@ -195,7 +197,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* 当前区域的菜单项 */}
         <Menu
           mode="inline"
-          selectedKeys={[currentModule]}
+          selectedKeys={[currentSessionType]}
           style={{ borderRight: 0, flex: 'none' }}
           className="border-b border-gray-100"
           items={currentSection.items.map(item => ({
@@ -294,7 +296,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-gray-100 bottom-nav-container bg-white">
           <div className="flex justify-center space-x-1">
             {navigationSections.map(section => (
-              <Tooltip key={section.key} title={section.label} placement="right">
+              <Tooltip key={section.key} title={section.label} placement="top">
                 <Button
                   type={activeSection === section.key ? 'primary' : 'text'}
                   size="small"
