@@ -93,11 +93,8 @@ function App() {
       //console.log('更新会话记录' + currentSessionId);
       sessionRecord.module = currentModule;
       sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : '');
-<<<<<<< HEAD
       sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
-=======
-      sessionRecord.user_com = AUTO_USER_COM_INTERFACE.current;
->>>>>>> 7f24364 (update currentSessionType)
+
       sessionRecord.streamingText = '';
       sessionRecord.timestamp = Date.now();
     }
@@ -122,30 +119,20 @@ function App() {
     const ws = await beginWebSocketCom(
       // AUTO_USER_COM_INTERFACE,
       AUTO_USER_COM_INTERFACE.current,
-<<<<<<< HEAD
       // isUploadMode
       isUploadMode,
       uploadRequest,
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-=======
-      
-      // onMessage callback
-      (event) => {
-        const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-        //console.log('parsedMessage:', parsedMessage);
->>>>>>> 7f24364 (update currentSessionType)
+
         onComReceived(parsedMessage);
       },
       // onOpen callback
       () => {
-<<<<<<< HEAD
-        // console.log('WebSocket connection opened for history:', usedSessionId);
-=======
+
         //console.log('WebSocket connection opened for history:', usedSessionId);
         //console.log('selectedModel:', selectedModel);
->>>>>>> 7f24364 (update currentSessionType)
       },
       // onError callback
       (event) => {
