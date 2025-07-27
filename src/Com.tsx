@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
 
 export interface UserInterfaceMsg {
   function: string;
@@ -12,6 +13,7 @@ export interface UserInterfaceMsg {
   user_request: Record<string, any>;
   special_kwargs: Record<string, any>;
 }
+
 
 // 定义消息类型接口
 export interface ChatMessage {
@@ -97,7 +99,6 @@ export function useUserInterfaceMsg() {
     // 这里可以添加其他处理逻辑，比如更新 UI 或者触发其他副作用
   }
 
-
   return {
     AUTO_USER_COM_INTERFACE,
     currentModule,
@@ -115,12 +116,34 @@ export function useUserInterfaceMsg() {
   };
 }
 
+function buildUploadUserComInterface(AUTO_USER_COM_INTERFACE: UserInterfaceMsg, files: Array<string> = [], error: string = ''): UserInterfaceMsg {
+  if (files.length === 0) {
+    const UPLOAD_USER_COM_INTERFACE = {
+      ...AUTO_USER_COM_INTERFACE,
+      function: 'upload',
+      main_input: error? error: '正在上传文件，请稍候...',
+    }
+    return UPLOAD_USER_COM_INTERFACE;
+  } else {
+    const UPLOAD_USER_COM_INTERFACE = {
+      ...AUTO_USER_COM_INTERFACE,
+      function: 'upload_done',
+      main_input: error? error: '上传完毕',
+      special_kwargs: {
+        files: files,
+      }
+    }
+    return UPLOAD_USER_COM_INTERFACE;
+  }
+}
 
 export function useWebSocketCom() {
   const [url] = useState(import.meta.env.VITE_WEBSOCKET_URL ?? 'ws://localhost:28000/main');
 
   const beginWebSocketCom = async (
     AUTO_USER_COM_INTERFACE: UserInterfaceMsg,
+    isUploadMode: boolean = false,
+    uploadRequest: UploadRequestOption | null = null,
     onMessageCallback: (event: MessageEvent) => void,
     onOpenCallback: () => void,
     onErrorCallback: (event: Event) => void,
@@ -128,7 +151,17 @@ export function useWebSocketCom() {
   ) => {
     const ws = new WebSocket(url);
     ws.onopen = () => {
-      ws.send(JSON.stringify(AUTO_USER_COM_INTERFACE));
+      if (isUploadMode && uploadRequest) {
+        ws.send(JSON.stringify(buildUploadUserComInterface(AUTO_USER_COM_INTERFACE)));
+        beginHttpUpload(
+          uploadRequest,
+          (files: Array<string>, error: string) => {
+            ws.send(JSON.stringify(buildUploadUserComInterface(AUTO_USER_COM_INTERFACE, files, error)));
+          }
+        );
+      } else {
+        ws.send(JSON.stringify(AUTO_USER_COM_INTERFACE));
+      }
       onOpenCallback();
     };
 
@@ -150,3 +183,52 @@ export function useWebSocketCom() {
     beginWebSocketCom
   };
 }
+
+
+
+// 处理文件上传
+const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any) => {
+  const { file, onProgress, onSuccess, onError } = options;
+  const formData = new FormData();
+  formData.append('files', file);
+  // 使用代理路径
+  const uploadUrl = '/upload';
+
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', event => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress?.({ percent });
+      }
+    });
+
+    xhr.addEventListener('load', async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const result = JSON.parse(xhr.responseText);
+
+        const paths: any = [];
+        result.files.forEach(file => {
+          paths.push(file.path); // 提取每个对象的 path 属性并添加到数组中
+        });
+        console.log('上传成功:', paths);
+        finishCallback(paths, '')
+        onSuccess?.(result);
+      } else {
+        throw new Error(`上传失败: ${xhr.statusText}`);
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      const error = new Error('上传失败');
+      finishCallback([], '上传失败')
+      onError?.(error);
+    });
+
+    xhr.open('POST', uploadUrl, true);
+    xhr.send(formData);
+  } catch (error) {
+    finishCallback([], '上传失败');
+    onError?.(error as Error);
+  }
+};
