@@ -17,7 +17,18 @@ cd frontend-gptac
 npm install
 # develop
 npm run dev
+# --------------------------------git---------------------------------
+git remote set-url origin git@github.com:binary-husky/frontend-gptac.git
+
+# 测试 SSH 连接
+ssh -T git@github.com
+
+# 尝试推送
+git push origin main
+
+
 ```
+
 
 
 
