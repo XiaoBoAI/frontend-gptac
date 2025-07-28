@@ -1,6 +1,6 @@
 import { Input, Button, Dropdown, Menu, Tooltip, message, Upload } from 'antd';
 import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/lib/interface';
 
 const { TextArea } = Input;
@@ -26,6 +26,28 @@ interface InputAreaProps {
   isStreaming?: boolean; // 是否正在流式回复
   onFileUpload?: (options: RcCustomRequestOptions) => void; // 文件上传处理函数
 }
+
+// 用户输入预测结果接口
+interface PredictionResult {
+  future: string;
+}
+
+// 防抖hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 const modulePlaceholders: Record<string, string> = {
   ai_chat: '与AI进行智能对话，输入您的问题...',
@@ -65,6 +87,117 @@ const InputArea: React.FC<InputAreaProps> = ({
 }) => {
   const inputRef = useRef(null);
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
+
+  // 用户输入预测状态
+  const [prediction, setPrediction] = useState<string>('');
+  const [showPrediction, setShowPrediction] = useState(false);
+  const [lastRequestTime, setLastRequestTime] = useState(0);
+  const [lastInputValue, setLastInputValue] = useState('');
+  // create ref to `value`
+  const valueRef = useRef(value);
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+
+  // 防抖处理用户输入
+  const debouncedValue = useDebounce(value, 1000);
+
+  // 预测用户输入的API调用
+  const predictUserInput = async (inputText: string) => {
+    try {
+      const httpUrl = import.meta.env.VITE_HTTP_URL || 'http://localhost:38000';
+
+      // 获取最后200个字符
+      const mainInput = inputText.slice(-1024);
+
+      const response = await fetch(`/predict_user_input`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          main_input: mainInput
+        }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const result: PredictionResult = await response.json();
+
+      console.log('预测结果:', result);
+      // 验证请求完成时用户输入是否已经改变
+      if (valueRef.current !== inputText) {
+        console.log('用户输入已改变，放弃此次预测', value, inputText);
+        return; // 用户输入已改变，放弃此次预测
+      }
+
+      if (result.future && result.future.trim()) {
+        setPrediction(result.future);
+        setShowPrediction(true);
+        console.log('成功');
+      } else {
+        console.warn('预测结果为空或仅包含空格，放弃显示预测');
+      }
+    } catch (error) {
+      console.warn('预测用户输入失败:', error);
+      return;
+    }
+  };
+
+  // 监听防抖后的输入变化
+  useEffect(() => {
+    if (!debouncedValue.trim()) {
+      setShowPrediction(false);
+      return;
+    }
+
+    // // 每5秒只能执行一次限制
+    const now = Date.now();
+    // if (now - lastRequestTime < 5000) {
+    //   return;
+    // }
+
+    // 记录当前输入值和请求时间
+    setLastInputValue(value);
+    setLastRequestTime(now);
+
+    // 隐藏之前的预测
+    setShowPrediction(false);
+
+    // 执行预测
+    predictUserInput(debouncedValue);
+  }, [debouncedValue]);
+
+  // 监听用户输入变化，隐藏预测
+  useEffect(() => {
+    if (value !== lastInputValue && showPrediction) {
+      setShowPrediction(false);
+    }
+  }, [value, lastInputValue, showPrediction]);
+
+  // 应用预测建议
+  const applyPrediction = useCallback(() => {
+    if (prediction) {
+      const newValue = value + prediction;
+      // 模拟onChange事件
+      const syntheticEvent = {
+        target: { value: newValue }
+      } as React.ChangeEvent<HTMLTextAreaElement>;
+      onChange(syntheticEvent);
+      setShowPrediction(false);
+    }
+  }, [prediction, value, onChange]);
+
+  // 处理键盘事件
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Tab' && showPrediction && prediction) {
+      e.preventDefault();
+      applyPrediction();
+    }
+  }, [showPrediction, prediction, applyPrediction]);
 
   // 下拉菜单
   const menu = (
@@ -136,10 +269,42 @@ const InputArea: React.FC<InputAreaProps> = ({
               <span>AI正在回复中...</span>
             </div>
           )}
+
+          {/* 用户输入预测提示 */}
+          {showPrediction && prediction && (
+            <div
+              style={{
+                position: 'absolute',
+                top: isStreaming ? 40 : 8,
+                right: 80,
+                background: '#f0f8ff',
+                border: '1px solid #d0e7ff',
+                borderRadius: 12,
+                padding: '6px 12px',
+                fontSize: 12,
+                color: '#1677ff',
+                zIndex: 2,
+                cursor: 'pointer',
+                maxWidth: 200,
+                wordWrap: 'break-word',
+                boxShadow: '0 2px 8px rgba(22, 119, 255, 0.1)',
+              }}
+              onClick={applyPrediction}
+            >
+              <div style={{ marginBottom: 2 }}>
+                💡 <strong>预测补全:</strong> {prediction}
+              </div>
+              <div style={{ fontSize: 10, color: '#666' }}>
+                按Tab键或点击应用
+              </div>
+            </div>
+          )}
+
           <TextArea
             ref={inputRef}
             value={value}
             onChange={onChange}
+            onKeyDown={handleKeyDown}
             placeholder={isStreaming ? '正在回复中，您可以继续输入...' : placeholder}
             autoSize={{ minRows: 1, maxRows: 3 }}
             disabled={false}
