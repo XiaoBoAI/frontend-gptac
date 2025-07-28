@@ -114,6 +114,8 @@ const InputArea: React.FC<InputAreaProps> = ({
           justifyContent: 'center',
           border: '2px solid #f3f3f3',
           marginBottom: 10,
+          marginLeft: 10,
+          marginRight: 10,
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>

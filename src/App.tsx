@@ -75,7 +75,7 @@ function App() {
   }, [currentSessionId]);
 
 
-  
+
 
   const CreateNewSession = () => {
     //console.log('currentSessionId:', currentSessionId);
@@ -143,7 +143,7 @@ function App() {
     setChatbot([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
     setChatbotCookies({}); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
     setHistory([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    
+
     if (!sessionId) return; // 添加安全检查
 
 
@@ -193,11 +193,11 @@ function App() {
     // const { file, onProgress, onSuccess, onError } = options;
     handleSendMessage(true, uploadRequest);
   }
-  
+
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
     if (currentSessionId === null) {
-      CreateNewSession(); 
+      CreateNewSession();
     }
     else{
       UpdateSessionRecord();
@@ -298,7 +298,7 @@ function App() {
 
 
   return (
-    <div className="App overflow-hidden h-screen w-screen flex flex-row">
+    <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
       <Sidebar
         onSelectSessionType={handleSessionTypeChange}
         currentSessionType={currentSessionType}
@@ -312,7 +312,7 @@ function App() {
         setSpecialKwargs={setSpecialKwargs}
         specialKwargs={specialKwargs}
       />
-      <div className="flex flex-col flex-1 relative bg-white">
+      <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
         {/* 右上角个人账号入口 */}
         {/* <div className="absolute top-4 right-8 flex items-center z-20">
           <Avatar size={28} src={null} />

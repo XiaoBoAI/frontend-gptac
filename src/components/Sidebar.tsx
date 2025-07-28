@@ -337,13 +337,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* 收起/展开按钮 - 使用箭头图标 */}
-      <div className="flex items-center">
+      <div className="absolute top-1/2 z-10 right-0 translate-x-full">
         <Tooltip title={collapsed ? "展开侧边栏" : "收起侧边栏"} placement="right">
           <Button
             type="text"
             icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
             onClick={() => onCollapse?.(!collapsed)}
-            className="w-6 h-6 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 sidebar-toggle-btn"
+            className="w-4 h-6 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 sidebar-toggle-btn"
             style={{
               borderRadius: '0 6px 6px 0',
               boxShadow: '1px 0 3px rgba(0,0,0,0.1)',
