@@ -234,6 +234,9 @@ const InputArea: React.FC<InputAreaProps> = ({
 
   return (
     <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: isEmpty ? 80 : 24 }}>
+
+
+
       <div
         style={{
           background: '#fff',
@@ -269,36 +272,35 @@ const InputArea: React.FC<InputAreaProps> = ({
               <span>AI正在回复中...</span>
             </div>
           )}
-
-          {/* 用户输入预测提示 */}
-          {showPrediction && prediction && (
-            <div
-              style={{
-                position: 'absolute',
-                top: isStreaming ? 40 : 8,
-                right: 80,
-                background: '#f0f8ff',
-                border: '1px solid #d0e7ff',
-                borderRadius: 12,
-                padding: '6px 12px',
-                fontSize: 12,
-                color: '#1677ff',
-                zIndex: 2,
-                cursor: 'pointer',
-                maxWidth: 200,
-                wordWrap: 'break-word',
-                boxShadow: '0 2px 8px rgba(22, 119, 255, 0.1)',
-              }}
-              onClick={applyPrediction}
-            >
-              <div style={{ marginBottom: 2 }}>
-                💡 <strong>预测补全:</strong> {prediction}
-              </div>
-              <div style={{ fontSize: 10, color: '#666' }}>
-                按Tab键或点击应用
-              </div>
+        {/* 用户输入预测提示 */}
+        {showPrediction && prediction && (
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              transform: 'translateY(-100%)',
+              background: '#f0f8ff',
+              border: '1px solid #d0e7ff',
+              borderRadius: 12,
+              padding: '6px 12px',
+              fontSize: 12,
+              color: '#1677ff',
+              zIndex: 20,
+              cursor: 'pointer',
+              maxWidth: 400,
+              wordWrap: 'break-word',
+              boxShadow: '0 2px 8px rgba(22, 119, 255, 0.1)',
+            }}
+            onClick={applyPrediction}
+          >
+            <div style={{ marginBottom: 2 }}>
+              💡 <strong>预测补全:</strong> {prediction}
             </div>
-          )}
+            <div style={{ fontSize: 10, color: '#666' }}>
+              按Tab键或点击应用
+            </div>
+          </div>
+        )}
 
           <TextArea
             ref={inputRef}
