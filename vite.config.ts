@@ -10,6 +10,9 @@ export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode`
   const env = loadEnv(mode, process.cwd())
 
+  // Ensure HTTP_URL is properly set with fallback
+  const httpUrl = env.VITE_HTTP_URL || 'http://localhost:3000'
+
   rmSync('dist-electron', { recursive: true, force: true })
 
   const isServe = command === 'serve'
@@ -75,9 +78,9 @@ export default defineConfig(({ command, mode }) => {
           port: +url.port,
         }
       })()),
-      proxy: {
+      proxy: httpUrl ? {
         '/upload': {
-          target: 'http://localhost:28000',
+          target: httpUrl,
           changeOrigin: true,
           secure: false,
           configure: (proxy, options) => {
@@ -92,7 +95,23 @@ export default defineConfig(({ command, mode }) => {
             });
           },
         },
-      },
+        '/core_functional': {
+          target: httpUrl,
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('Sending Request to the Target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            });
+          }
+        },
+      } : undefined,
     },
     clearScreen: false,
   }
