@@ -84,6 +84,7 @@ export interface AdvancedSessionRecord {
   isStreaming?: boolean;
   streamingText?: string;
   user_com: UserInterfaceMsg;
+  messages: ChatMessage[];
 }
 
 interface SidebarProps {
