@@ -160,33 +160,31 @@ function App() {
     }));
   };
 
-  const UpdateStreamingText = () => {
+
+  useEffect(() => {
+    if ( chatbot.length === 0 ) return;
+    const aiResponse = chatbot[chatbot.length-1][1];
     const sessionId = currentSessionIdRef.current;
-    const current_chatbot = AUTO_USER_COM_INTERFACE.current.chatbot;
-    const lastConversation = current_chatbot[current_chatbot.length - 1];
-    if (lastConversation && lastConversation.length > 1) {
-      const aiResponse = lastConversation[1];
-      console.log('aiResponse:', aiResponse);
+    console.log('aiResponse:', aiResponse);
 
-      // 只有在有实际内容时才取消等待状态
-      if (aiResponse && aiResponse.trim().length > 0) {
-        setIsWaiting(false);
-      }
-
-      // 更新历史记录中的流式回复
-      setSessionRecords(prev => prev.map(record => {
-        if (record.id === sessionId) {
-          // 直接更新流式回复的临时文本
-          return {
-            ...record,
-            streamingText: aiResponse,
-            isStreaming: true
-          };
-        }
-        return record;
-      }));
+    // 只有在有实际内容时才取消等待状态
+    if (aiResponse && aiResponse.trim().length > 0) {
+      setIsWaiting(false);
     }
-  };
+    // 更新历史记录中的流式回复
+    setSessionRecords(prev => prev.map(record => {
+      if (record.id === sessionId) {
+        // 直接更新流式回复的临时文本
+        return {
+          ...record,
+          streamingText: aiResponse,
+          isStreaming: true
+        };
+      }
+      return record;
+    }));
+
+  }, [chatbot]);
 
 
   const onFileUpload = async (uploadRequest: UploadRequestOption) => {
@@ -215,7 +213,6 @@ function App() {
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
         onComReceived(parsedMessage);
-        UpdateStreamingText();
       },
       // onOpen callback
       () => {

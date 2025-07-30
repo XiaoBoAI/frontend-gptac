@@ -243,7 +243,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           borderRadius: 24,
           boxShadow: '0 2px 16px #eee',
           padding: 0,
-          width: 600,
+          width: '80%',
           minHeight: 80,
           display: 'flex',
           flexDirection: 'column',
@@ -269,7 +269,7 @@ const InputArea: React.FC<InputAreaProps> = ({
               zIndex: 1,
             }}>
               <LoadingOutlined style={{ fontSize: 12 }} />
-              <span>AI正在回复中...</span>
+              <span>回复中...</span>
             </div>
           )}
         {/* 用户输入预测提示 */}
@@ -294,7 +294,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             onClick={applyPrediction}
           >
             <div style={{ marginBottom: 2 }}>
-              💡 <strong>预测补全:</strong> {prediction}
+              💡 <strong>补全:</strong> {prediction}
             </div>
             <div style={{ fontSize: 10, color: '#666' }}>
               按Tab键或点击应用
