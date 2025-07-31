@@ -29,7 +29,7 @@ interface InputAreaProps {
 
 // 用户输入预测结果接口
 interface PredictionResult {
-  future: string;
+  future: string[];
 }
 
 // 防抖hook
@@ -89,7 +89,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
 
   // 用户输入预测状态
-  const [prediction, setPrediction] = useState<string>('');
+  const [predictions, setPredictions] = useState<string[]>([]);
   const [showPrediction, setShowPrediction] = useState(false);
   const [lastRequestTime, setLastRequestTime] = useState(0);
   const [lastInputValue, setLastInputValue] = useState('');
@@ -134,8 +134,8 @@ const InputArea: React.FC<InputAreaProps> = ({
         return; // 用户输入已改变，放弃此次预测
       }
 
-      if (result.future && result.future.trim()) {
-        setPrediction(result.future);
+      if (result.future && result.future.length > 0 && result.future.some(item => item.trim())) {
+        setPredictions(result.future.filter(item => item.trim()));
         setShowPrediction(true);
         console.log('成功');
       } else {
@@ -179,9 +179,9 @@ const InputArea: React.FC<InputAreaProps> = ({
   }, [value, lastInputValue, showPrediction]);
 
   // 应用预测建议
-  const applyPrediction = useCallback(() => {
-    if (prediction) {
-      const newValue = value + prediction;
+  const applyPrediction = useCallback((index: number = 0) => {
+    if (predictions.length > 0 && predictions[index]) {
+      const newValue = value + predictions[index];
       // 模拟onChange事件
       const syntheticEvent = {
         target: { value: newValue }
@@ -189,15 +189,26 @@ const InputArea: React.FC<InputAreaProps> = ({
       onChange(syntheticEvent);
       setShowPrediction(false);
     }
-  }, [prediction, value, onChange]);
+  }, [predictions, value, onChange]);
 
   // 处理键盘事件
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Tab' && showPrediction && prediction) {
-      e.preventDefault();
-      applyPrediction();
+    if (showPrediction && predictions.length > 0) {
+      // Tab键应用第一个建议
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        applyPrediction(0);
+      }
+      // Ctrl+数字键应用对应索引的建议
+      else if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const index = parseInt(e.key) - 1;
+        if (index < predictions.length) {
+          applyPrediction(index);
+        }
+      }
     }
-  }, [showPrediction, prediction, applyPrediction]);
+  }, [showPrediction, predictions, applyPrediction]);
 
   // 下拉菜单
   const menu = (
@@ -273,7 +284,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             </div>
           )}
         {/* 用户输入预测提示 */}
-        {showPrediction && prediction && (
+        {showPrediction && predictions.length > 0 && (
           <div
             style={{
               position: 'absolute',
@@ -282,23 +293,44 @@ const InputArea: React.FC<InputAreaProps> = ({
               background: '#f0f8ff',
               border: '1px solid #d0e7ff',
               borderRadius: 12,
-              padding: '6px 12px',
+              padding: '8px 12px',
               fontSize: 12,
               color: '#1677ff',
               zIndex: 20,
-              cursor: 'pointer',
-              maxWidth: 400,
+              maxWidth: 500,
               wordWrap: 'break-word',
               boxShadow: '0 2px 8px rgba(22, 119, 255, 0.1)',
             }}
-            onClick={applyPrediction}
           >
-            <div style={{ marginBottom: 2 }}>
-              💡 <strong>补全:</strong> {prediction}
+            <div style={{ marginBottom: 6, fontSize: 11, color: '#666' }}>
+              💡 AI补全建议 (Tab或Ctrl+数字键应用)
             </div>
-            <div style={{ fontSize: 10, color: '#666' }}>
-              按Tab键或点击应用
-            </div>
+            {predictions.slice(0, 5).map((prediction, index) => (
+              <div
+                key={index}
+                style={{
+                  marginBottom: index === predictions.length - 1 ? 0 : 4,
+                  padding: '4px 8px',
+                  background: index === 0 ? '#e6f3ff' : '#f8f9fa',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  border: index === 0 ? '1px solid #bae7ff' : '1px solid #e9ecef',
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => applyPrediction(index)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#e6f3ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = index === 0 ? '#e6f3ff' : '#f8f9fa';
+                }}
+              >
+                <span style={{ fontWeight: 'bold', marginRight: 6 }}>
+                  {index === 0 ? 'Tab' : `Ctrl+${index + 1}`}:
+                </span>
+                <span>{prediction}</span>
+              </div>
+            ))}
           </div>
         )}
 
@@ -323,6 +355,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             }}
             onPressEnter={e => { if (!e.shiftKey) { e.preventDefault(); onSend(); } }}
           />
+
           {/* 发送/停止按钮 */}
           <Tooltip title={isStreaming ? "停止生成" : "发送"}>
             <Button
@@ -340,6 +373,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             />
             </Tooltip>
         </div>
+
         {/* 底部控制栏 */}
         <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>
           <Dropdown overlay={menu} trigger={['click']}>
