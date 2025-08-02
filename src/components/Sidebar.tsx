@@ -336,20 +336,28 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* 收起/展开按钮 - 使用箭头图标 */}
-      <div className="absolute top-1/2 z-10 right-0 translate-x-full">
+      {/* 收起/展开按钮 - 美化版本 */}
+      <div className="absolute top-1/2 z-10 right-0 translate-x-full transform -translate-y-1/2">
         <Tooltip title={collapsed ? "展开侧边栏" : "收起侧边栏"} placement="right">
-          <Button
-            type="text"
-            icon={collapsed ? <RightOutlined /> : <LeftOutlined />}
+          <div
             onClick={() => onCollapse?.(!collapsed)}
-            className="w-4 h-6 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 sidebar-toggle-btn"
+            className="w-3 h-6 flex items-center justify-center bg-white hover:bg-gray-50 cursor-pointer transition-all duration-200 sidebar-toggle-btn group"
             style={{
-              borderRadius: '0 6px 6px 0',
-              boxShadow: '1px 0 3px rgba(0,0,0,0.1)',
-              fontSize: '12px'
+              borderRadius: '0 12px 12px 0',
+              boxShadow: '1px 0 3px rgba(0,0,0,0.04)',
+              border: '1px solid #e5e7eb',
+              borderLeft: 'none',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              marginLeft: '-1px'
             }}
-          />
+          >
+                      <div className="flex flex-col items-center">
+            <div className="w-0.5 h-0.5 bg-gray-400 rounded-full mb-0.5 group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1"></div>
+            <div className="w-0.5 h-0.5 bg-gray-400 rounded-full mb-0.5 group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1"></div>
+            <div className="w-0.5 h-0.5 bg-gray-400 rounded-full group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1"></div>
+          </div>
+          </div>
         </Tooltip>
       </div>
     </div>

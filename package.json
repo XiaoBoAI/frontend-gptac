@@ -22,14 +22,22 @@
   "dependencies": {
     "antd": "^5.26.3",
     "electron-updater": "^6.3.9",
+    "github-markdown-css": "^5.8.1",
+    "katex": "^0.16.22",
     "lodash": "^4.17.21",
+    "react-katex": "^3.1.0",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
+    "@types/katex": "^0.16.7",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/react-katex": "^3.0.4",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
     "electron": "^33.2.0",

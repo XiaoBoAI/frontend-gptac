@@ -3,6 +3,11 @@ import { Avatar, Typography } from 'antd';
 import { UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
+import 'katex/dist/katex.min.css';
+import 'github-markdown-css';
 
 const { Text } = Typography;
 
@@ -29,6 +34,7 @@ const MainContent: React.FC<MainContentProps> = ({
 }) => {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showWaiting, setShowWaiting] = useState(false);
   const messagesEndRef = useRef(null);
 
   // useEffect(() => {
@@ -60,9 +66,29 @@ const MainContent: React.FC<MainContentProps> = ({
 
     useEffect(() => {
     setMessages(currentMessages);
-    // set messages
-    (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
+    // 消息更新后滚动到底部
+    const element = messagesEndRef.current as unknown as HTMLDivElement;
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
   }, [currentMessages]);
+
+  // 监听等待状态变化
+  useEffect(() => {
+    if (isWaiting) {
+      setShowWaiting(true);
+    } else {
+      setShowWaiting(false);
+    }
+  }, [isWaiting]);
+
+  // 监听消息变化和流式状态，滚动到底部
+  useEffect(() => {
+    const element = messagesEndRef.current as unknown as HTMLDivElement;
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages, isStreaming]);
 
 
 
@@ -181,29 +207,51 @@ const MainContent: React.FC<MainContentProps> = ({
                   }}
                 >
                   {message.sender === 'bot' ? (
-                    <div>
+                    <div className="markdown-body">
                       <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
+                        remarkPlugins={[
+                          remarkGfm,
+                          [remarkMath, { singleDollarTextMath: true }]
+                        ]}
+                        rehypePlugins={[
+                          rehypeRaw,
+                          [rehypeKatex, {
+                            strict: false,
+                            throwOnError: false,
+                            errorColor: '#cc0000',
+                            macros: {
+                              "\\RR": "\\mathbb{R}",
+                              "\\NN": "\\mathbb{N}",
+                              "\\ZZ": "\\mathbb{Z}",
+                              "\\QQ": "\\mathbb{Q}",
+                              "\\CC": "\\mathbb{C}"
+                            }
+                          }]
+                        ]}
+                        remarkRehypeOptions={{
+                          footnoteLabel: '参考文献',
+                          footnoteBackLabel: '返回正文'
+                        }}
                         components={{
                           p: ({ children }) => <div className="mb-3 last:mb-0">{children}</div>,
                           code: ({ children, className }) => {
                             const isInline = !className;
                             return isInline ? (
-                              <code className="bg-gray-200 px-1 py-0.5 rounded text-sm">
+                              <code className="bg-gray-200 px-1 py-0.5 rounded text-sm text-gray-800">
                                 {children}
                               </code>
                             ) : (
-                              <pre className="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
-                                <code>{children}</code>
+                              <pre className="bg-gray-50 text-gray-900 p-4 rounded-lg overflow-x-auto border border-gray-200 shadow-sm">
+                                <code className="text-gray-900 bg-transparent">{children}</code>
                               </pre>
                             );
                           },
-                          ul: ({ children }) => <ul className="list-disc list-inside mb-3">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-inside mb-3">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1">{children}</li>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc list-outside mb-3 ml-4 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-outside mb-3 ml-4 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1 leading-relaxed pl-1">{children}</li>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3 leading-tight">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2 leading-tight">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-2 leading-tight">{children}</h3>,
                           blockquote: ({ children }) => (
                             <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-3">
                               {children}
@@ -253,8 +301,8 @@ const MainContent: React.FC<MainContentProps> = ({
         ))}
 
         {/* 等待回复的动态图标 */}
-        {isWaiting && (
-          <div className="flex justify-start mb-6">
+        {showWaiting && (
+          <div key="waiting-message" className="flex justify-start mb-6">
             <div className="flex max-w-3xl flex-row">
               {/* 机器人头像 */}
               <div className="flex-shrink-0 mr-3">

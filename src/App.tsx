@@ -156,6 +156,13 @@ function App() {
           streamingText: undefined
         };
       }
+      else if (record.id === sessionId && record.isStreaming && !record.streamingText) {
+        return {
+          ...record,
+          isStreaming: false,
+          streamingText: undefined
+        };
+      }
       return record;
     }));
   };
@@ -252,6 +259,7 @@ function App() {
   const handleForceStop = () => {
 
     ws?.close();
+    setIsWaiting(false);
 
     CloseSessionRecord();
   };
