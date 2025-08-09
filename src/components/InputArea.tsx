@@ -6,8 +6,9 @@ import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/li
 const { TextArea } = Input;
 
 const modelList = [
-  { key: 'deepseek-chat', label: '深度对话', icon: <span style={{fontSize:18}}>🎓</span>, description: '适合对话和写作' },
-  { key: 'deepseek-reasoner', label: '深度思考', icon: <span style={{fontSize:18}}>🧠</span>, description: '适合复杂推理和深度分析' },
+  { key: 'deepseek-chat', label: 'Deepseek-Chat', icon: <span style={{fontSize:18}}>🎓</span>, description: '适合对话和写作' },
+  { key: 'deepseek-reasoner', label: 'Deepseek-R1', icon: <span style={{fontSize:18}}>🧠</span>, description: '适合复杂推理和深度分析' },
+  { key: 'gpt-4o', label: 'GPT-4o', icon: <span style={{fontSize:18}}>🤖</span>, description: '适合对话和推理' },
   //{ key: 'search', label: '全网搜索', icon: <GlobalOutlined />, description: '实时搜索最新信息' },
 //   { key: 'creative', label: '创意写作', icon: <span style={{fontSize:18}}>✨</span>, description: '适合创意和写作任务' },
 //   { key: 'academic', label: '学术助手', icon: <span style={{fontSize:18}}>🎓</span>, description: '专注于学术研究和论文' },
@@ -106,7 +107,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   // 预测用户输入的API调用
   const predictUserInput = async (inputText: string) => {
     try {
-      const httpUrl = import.meta.env.VITE_HTTP_URL || 'http://localhost:38000';
+      const httpUrl = import.meta.env.VITE_HTTP_URL || 'http://localhost:28000';
 
       // 获取最后200个字符
       const mainInput = inputText.slice(-1024);
@@ -210,19 +211,21 @@ const InputArea: React.FC<InputAreaProps> = ({
     }
   }, [showPrediction, predictions, applyPrediction]);
 
-  // 下拉菜单
-  const menu = (
-    <Menu selectedKeys={[selectedModel]} onClick={({ key }) => setSelectedModel && setSelectedModel(key)}>
-      {modelList.map(m => (
-        <Menu.Item key={m.key} icon={m.icon}>
-          <div>
-            <div className="font-medium">{m.label}</div>
-            <div className="text-xs text-gray-500">{m.description}</div>
-          </div>
-        </Menu.Item>
-      ))}
-    </Menu>
-  );
+  // 下拉菜单 - 使用新的 items API
+  const menuItems = modelList.map(m => ({
+    key: m.key,
+    icon: m.icon,
+    label: (
+      <div>
+        <div className="font-medium">{m.label}</div>
+        <div className="text-xs text-gray-500">{m.description}</div>
+      </div>
+    ),
+  }));
+
+  const handleMenuClick = ({ key }: { key: string }) => {
+    setSelectedModel && setSelectedModel(key);
+  };
 
   // 发送按钮样式
   const sendDisabled = !value.trim();
@@ -376,7 +379,14 @@ const InputArea: React.FC<InputAreaProps> = ({
 
         {/* 底部控制栏 */}
         <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>
-          <Dropdown overlay={menu} trigger={['click']}>
+          <Dropdown 
+            menu={{ 
+              items: menuItems, 
+              selectedKeys: [selectedModel], 
+              onClick: handleMenuClick 
+            }} 
+            trigger={['click']}
+          >
             <Button
               icon={modelList.find(m => m.key === selectedModel)?.icon || <span style={{fontSize:14}}>🧠</span>}
               type="default"
@@ -395,7 +405,6 @@ const InputArea: React.FC<InputAreaProps> = ({
           >
             <Button icon={<UploadOutlined />}>上传文件</Button>
           </Upload>
-
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ const navigationSections = [
     icon: <ChatIcon />,
     color: '#1890ff',
     items: [
-      { key: 'ai_chat', label: 'AI对话', icon: <RobotOutlined /> },
+      { key: 'chat', label: 'AI对话', icon: <RobotOutlined /> },
       { key: 'academic_chat', label: '学术对话', icon: <BookOutlined /> },
       { key: 'paper_qa', label: '论文问答', icon: <QuestionCircleOutlined /> },
     ]
@@ -49,8 +49,8 @@ const navigationSections = [
     color: '#52c41a',
     items: [
       { key: 'paper_write', label: '论文写作', icon: <EditOutlined /> },
-      { key: 'paper_translate', label: '论文翻译', icon: <TranslationOutlined /> },
-      { key: 'document_analysis', label: '文档分析', icon: <FileTextOutlined /> },
+      // { key: 'paper_translate', label: '论文翻译', icon: <TranslationOutlined /> },
+      // { key: 'document_analysis', label: '文档分析', icon: <FileTextOutlined /> },
     ]
   },
   {
@@ -85,7 +85,7 @@ export interface AdvancedSessionRecord {
   isStreaming?: boolean;
   streamingText?: string;
   user_com: UserInterfaceMsg;
-  messages: ChatMessage[];
+  //messages: ChatMessage[];
 }
 
 interface SidebarProps {
@@ -136,11 +136,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   // 处理底部导航区域切换
   const handleSectionChange = (sectionKey: string) => {
     setActiveSection(sectionKey);
-    // 切换到该区域的第一个模块
-    const section = navigationSections.find(s => s.key === sectionKey);
-    if (section && section.items.length > 0) {
-      onSelectSessionType(section.items[0].key);
-    }
+    // 只在特定条件下才自动切换模块
+    // 例如：只在用户主动点击时才切换，而不是程序自动切换
+    // const section = navigationSections.find(s => s.key === sectionKey);
+    // if (section && section.items.length > 0) {
+    //   onSelectSessionType(section.items[0].key);
+    // }
   };
 
   const formatTime = (timestamp: number) => {
@@ -175,9 +176,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const getCurrentSection = () => {
-    return navigationSections.find(section =>
-      section.items.some(item => item.key === currentSessionType)
-    ) || navigationSections[0];
+    // 根据 activeSection 来获取当前区域，而不是根据 currentSessionType
+    return navigationSections.find(section => section.key === activeSection) || navigationSections[0];
   };
 
   const currentSection = getCurrentSection();
@@ -230,8 +230,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
         )}
 
-        {/* 历史记录区域 - 使用固定高度，确保底部导航固定 */}
-        <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 280px)' }}>
+    <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 280px)' }}>
           <div className="font-semibold text-xs text-gray-500 mb-2 flex items-center">
             <ClockCircleOutlined className="mr-1" />
             历史对话
@@ -273,7 +272,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                       <div className="flex items-center gap-1">
                         <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
-                        {/* 删除按钮 - 只在非流式回复时显示 */}
                         {!record.isStreaming && (
                           <Tooltip title="删除对话">
                             <Button

@@ -23,6 +23,7 @@ import MainContent from './components/MainContent';
 import InputArea from './components/InputArea';
 import Main from 'electron/main';
 import { UploadRequestOption } from 'antd/es/upload/interface';
+import React from 'react';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -64,47 +65,72 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionType, setCurrentSessionType] = useState('ai_chat'); // 当前会话类型 （ai_chat, academic_chat, paper_qa, paper_write, paper_translate, document_analysis, calculator, image_generator, data_analysis, user_profile, help）
   const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
+  const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
   const [ws, setWs] = useState<WebSocket | null>(null);
 
-  // 在组件顶部添加 ref
-  const currentSessionIdRef = useRef<string | null>(null);
-
-  // 同步 ref 和 state
-  useEffect(() => {
-    currentSessionIdRef.current = currentSessionId;
-  }, [currentSessionId]);
 
 
+  const CreateNewSession = (sessionType: string) => {
+    if (currentSessionId) {
+      UpdateSessionRecord();
+    }
 
+    // 检查是否已有同类型的新会话（标题为"新会话"的会话）
+    const existingNewSession = sessionRecords.find(record => 
+      record.module === sessionType && 
+      record.title === '新会话'
+    );
 
-  const CreateNewSession = () => {
-    //console.log('currentSessionId:', currentSessionId);
-    // if (currentSessionId) {
-    //   UpdateSessionRecord();
-    // }
+    if (existingNewSession) {
+      // 如果找到同类型的新会话，直接沿用
+      console.log('找到同类型新会话，直接沿用:', existingNewSession.id);
+      setCurrentSessionId(existingNewSession.id);
+      
+      // 恢复该会话的状态
+      setChatbot(existingNewSession.user_com.chatbot || []);
+      setChatbotCookies(existingNewSession.user_com.chatbot_cookies || {});
+      setHistory(existingNewSession.user_com.history || []);
+      
+      return; // 直接返回，不创建新会话
+    }
+
+    
+
     const newSessionId = Date.now().toString();
-    setChatbot([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    setChatbotCookies({}); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    setHistory([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
+    
+    // 先清空所有状态
+    setChatbot([]); 
+    setChatbotCookies({}); 
+    setHistory([]); 
+    // setMainInput(''); // 清空输入框内容
+    // setIsStreaming(false); // 重置流式状态
+    // setIsWaiting(false); // 重置等待状态
+
+    // 创建一个干净的 AUTO_USER_COM_INTERFACE 对象
+    const cleanUserComInterface = {
+      function: sessionType,
+      main_input: '',
+      llm_kwargs: { llm_model: selectedModel },
+      plugin_kwargs: {},
+      chatbot: [],
+      chatbot_cookies: {},
+      history: [],
+      system_prompt: systemPrompt,
+      user_request: { username: 'default_user' },
+      special_kwargs: specialKwargs
+    };
 
     setCurrentSessionId(newSessionId);
-    //console.log('CreateNewSession:', newSessionId);
     setSessionRecords(prev => [
       ...prev,
       {
         id: newSessionId,
-        module: currentModule,
-        title: MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : ''),
-        user_com: lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current),
+        module: sessionType,
+        title: MainInput.trim() ? MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "") : '新会话',
+        user_com: cleanUserComInterface, // 使用干净的接口对象
         streamingText: '',
         timestamp: Date.now(),
-        isStreaming: true, // 新会话默认在流式回复中
-        messages: [
-          {
-            sender: 'user',
-            text: MainInput
-          }
-        ]
+        isStreaming: false,
       }
     ]);
   }
@@ -115,83 +141,26 @@ function App() {
   };
 
   const UpdateSessionRecord = () => {
-    setSessionRecords(prev => prev.map(record =>
-      record.id === currentSessionId
-        ? {
-            ...record,  // 保持所有原有属性
-            module: currentModule,
-            title: MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : ''),
-            user_com: lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current),
-            streamingText: '',
-            timestamp: Date.now(),
-            isStreaming: true,
-            messages: [...record.messages,
-              {
-                sender: 'user',
-                text: MainInput
-              }
-            ]
-          }
-        : record  // 其他记录保持不变
-    ));
-  }
-
-  // 修改 CloseSessionRecord 函数
-  const CloseSessionRecord = () => {
-    const sessionId = currentSessionIdRef.current; // 使用 ref 中的最新值
-    console.log('currentSessionId:', sessionId);
-    setChatbot([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    setChatbotCookies({}); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    setHistory([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-
-    if (!sessionId) return; // 添加安全检查
-
-
-    setSessionRecords(prev => prev.map(record => {
-      if (record.id === sessionId && record.isStreaming && record.streamingText) {
-        return {
-          ...record,
-          messages: [...record.messages, { sender: 'bot', text: record.streamingText}],
-          isStreaming: false,
-          streamingText: undefined
-        };
+    const sessionRecord = sessionRecords.find(record => record.id === currentSessionId);
+    // find session record by id
+    if (sessionRecord) {
+      console.log('更新会话记录' + currentSessionId);
+      sessionRecord.module = currentModule;
+      
+      // 只有当 MainInput 不为空时才更新标题
+      if (MainInput.trim()) {
+        sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
+      } else if (!sessionRecord.title || sessionRecord.title === '新会话') {
+        // 如果 MainInput 为空且当前标题是"新会话"或空，保持"新会话"标题
+        sessionRecord.title = '新会话';
       }
-      else if (record.id === sessionId && record.isStreaming && !record.streamingText) {
-        return {
-          ...record,
-          isStreaming: false,
-          streamingText: undefined
-        };
-      }
-      return record;
-    }));
-  };
-
-
-  useEffect(() => {
-    if ( chatbot.length === 0 ) return;
-    const aiResponse = chatbot[chatbot.length-1][1];
-    const sessionId = currentSessionIdRef.current;
-    console.log('aiResponse:', aiResponse);
-
-    // 只有在有实际内容时才取消等待状态
-    if (aiResponse && aiResponse.trim().length > 0) {
-      setIsWaiting(false);
+      // 如果 MainInput 为空但已有其他标题，保持原有标题不变
+      
+      sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
+      sessionRecord.streamingText = '';
+      sessionRecord.timestamp = Date.now();
     }
-    // 更新历史记录中的流式回复
-    setSessionRecords(prev => prev.map(record => {
-      if (record.id === sessionId) {
-        // 直接更新流式回复的临时文本
-        return {
-          ...record,
-          streamingText: aiResponse,
-          isStreaming: true
-        };
-      }
-      return record;
-    }));
-
-  }, [chatbot]);
+  }
 
 
   const onFileUpload = async (uploadRequest: UploadRequestOption) => {
@@ -201,14 +170,10 @@ function App() {
 
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
-    if (currentSessionId === null) {
-      CreateNewSession();
-    }
-    else{
-      UpdateSessionRecord();
-    }
-    //UpdateSessionRecord();
+    if (currentSessionId === null) { CreateNewSession(currentModule); }
+    UpdateSessionRecord();
     setIsWaiting(true);
+
     // 使用 useWebSocketCom hook 创建 WebSocket 连接
     const ws = await beginWebSocketCom(
       // AUTO_USER_COM_INTERFACE,
@@ -220,6 +185,8 @@ function App() {
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
         onComReceived(parsedMessage);
+        setIsStreaming(true);
+        setIsWaiting(false);
       },
       // onOpen callback
       () => {
@@ -229,50 +196,51 @@ function App() {
       (event) => {
         console.log('WebSocket connection error');
         setIsWaiting(false);
-        CloseSessionRecord();
+        setIsStreaming(false);
+        UpdateSessionRecord();
       },
       // onClose callback
       (event) => {
         console.log('WebSocket connection closed');
         setIsWaiting(false);
-        CloseSessionRecord();
+        setIsStreaming(false);
+        UpdateSessionRecord();
       }
     );
     setWs(ws);
-
   };
 
   const handleClear = () => {
-    CreateNewSession();
+    CreateNewSession(currentModule);
   };
+
 
   const handleSessionTypeChange = (sessionType: string) => {
     setCurrentSessionType(sessionType);
-    setCurrentSessionId(null);
-    // setChatbot([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    // setChatbotCookies({}); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    // setHistory([]); // 这会自动触发 AUTO_USER_COM_INTERFACE 的更新
-    //CreateNewSession();
+    //console.log('handleSessionTypeChange', sessionType);
+    //setCurrentSessionId(null);
+    setCurrentModule(sessionType);
+    CreateNewSession(sessionType);
   };
 
-  // 停止当前流式回复
   const handleForceStop = () => {
-
     ws?.close();
     setIsWaiting(false);
-
-    CloseSessionRecord();
+    setIsStreaming(false);
+    UpdateSessionRecord();
   };
 
   const handleHistorySelect = (historyId: string) => {
     const sessionRecord = sessionRecords.find(record => record.id === historyId);
     if (sessionRecord) {
-      //onComReceived(sessionRecord.user_com);
+      // console.log('handleHistorySelect', sessionRecord.user_com);
+      // console.log('handleHistorySelectId', historyId);
+      // console.log('handleHistorySelectmodule', sessionRecord.module);
+      setCurrentSessionType(sessionRecord.module);
+      //console.log('currentSessionType', currentSessionType);
+      onComReceived(sessionRecord.user_com);
       setCurrentSessionId(historyId);
-      setChatbot(sessionRecord.user_com.chatbot);
-      setChatbotCookies(sessionRecord.user_com.chatbot_cookies);
-      setHistory(sessionRecord.user_com.history);
-      setSelectedModel(sessionRecord.user_com.llm_kwargs.llm_model);
+      
     }
   };
 
@@ -281,25 +249,9 @@ function App() {
     setSessionRecords(prev => prev.filter(record => record.id !== historyId));
     // 如果删除的是当前选中的历史记录，创建新会话
     if (currentSessionId === historyId) {
-      setCurrentSessionId(null);
+      CreateNewSession(currentModule);
     }
   };
-
-  // 获取当前历史记录的消息
-  const getCurrentMessages = (): ChatMessage[] => {
-    if (!currentSessionId) return [];
-    const record = sessionRecords.find(r => r.id === currentSessionId);
-    if (!record) return [];
-
-    // 如果有流式回复，添加临时消息
-    if (record.isStreaming && record.streamingText) {
-      return [...record.messages, { sender: 'bot', text: record.streamingText }];
-    }
-
-    return record.messages;
-  };
-
-  const currentMessages = getCurrentMessages();
 
 
   return (
@@ -326,9 +278,8 @@ function App() {
         {/* 内容区 */}
         <MainContent
           currentSessionType={currentSessionType}
-          currentMessages={currentMessages}
-          isEmpty={currentMessages.length === 0}
-          isStreaming={sessionRecords.find(r => r.id === currentSessionId)?.isStreaming || false}
+          chatbot={chatbot}
+          isStreaming={isStreaming} // 传递流式状态
           isWaiting={isWaiting} // 传递等待状态
         />
         <InputArea
@@ -339,10 +290,10 @@ function App() {
           onStopStreaming={handleForceStop}
           onFileUpload={onFileUpload}
           currentModule={currentModule}
-          isEmpty={currentMessages.length === 0}
+          isEmpty={chatbot.length === 0}
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
-          isStreaming={sessionRecords.find(r => r.id === currentSessionId)?.isStreaming || false}
+          isStreaming={isStreaming}
         />
       </div>
     </div>

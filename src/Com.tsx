@@ -43,6 +43,7 @@ export function useUserInterfaceMsg() {
   useEffect(() => {
   // 请不要在 Com.tsx 源文件外面修改 AUTO_USER_COM_INTERFACE
     AUTO_USER_COM_INTERFACE.current.function = currentModule;
+    console.log('currentModule', currentModule);
   }, [currentModule]);
 
   // ------------------------ MainInput (map to UserInterfaceMsg.function) -------------------------
@@ -57,6 +58,7 @@ export function useUserInterfaceMsg() {
   useEffect(() => {
   // 请不要在 Com.tsx 源文件外面修改 AUTO_USER_COM_INTERFACE
     AUTO_USER_COM_INTERFACE.current.llm_kwargs.llm_model = selectedModel;
+    //console.log('selectedModel', selectedModel);
   }, [selectedModel]);
 
   // ------------------------ chatbot (map to UserInterfaceMsg.chatbot) -------------------------

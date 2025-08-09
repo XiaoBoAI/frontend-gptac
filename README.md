@@ -26,6 +26,8 @@ ssh -T git@github.com
 # 尝试推送
 git push origin main
 
+export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ && npm install
+
 
 ```
 

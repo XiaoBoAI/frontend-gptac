@@ -18,8 +18,8 @@ interface ChatMessage {
 
 interface MainContentProps {
   currentSessionType: string;
-  //chatbot: string[][];
-  currentMessages: ChatMessage[];
+  chatbot: string[][];
+  //currentMessages: ChatMessage[];
   isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
@@ -27,51 +27,53 @@ interface MainContentProps {
 
 const MainContent: React.FC<MainContentProps> = ({
   currentSessionType,
-  currentMessages,
-  isEmpty,
+  chatbot,
   isStreaming = false,
   isWaiting = false
 }) => {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [showWaiting, setShowWaiting] = useState(false);
   const messagesEndRef = useRef(null);
+  const [showWaiting, setShowWaiting] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
 
-  // useEffect(() => {
-  //   // loop chatbot, convert to ChatMessage[]
-  //   // console.log('chatbot update');
-  //   // console.log('chatbot:', chatbot);
-  //   const message_buffer: ChatMessage[] = [];
-  //   for (let i = 0; i < chatbot.length; i++) {
-  //     const user_str_msg: string = chatbot[i][0];
-  //     const ai_str_msg: string = chatbot[i][1];
-  //     if (user_str_msg && user_str_msg !== '') {
-  //       message_buffer.push({
-  //         sender: 'user',
-  //         text: user_str_msg
-  //       });
-  //     }
-  //     if (ai_str_msg && ai_str_msg !== '') {
-  //       message_buffer.push({
-  //         sender: 'bot',
-  //         text: ai_str_msg
-  //       });
-  //     }
-  //   }
-  //   setMessages(message_buffer);
-  //   // set messages
-  //   (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
-  // }, [chatbot]);
+  useEffect(() => {
+    // loop chatbot, convert to ChatMessage[]
+    console.log('chatbot update');
+    const message_buffer: ChatMessage[] = [];
+    for (let i = 0; i < chatbot.length; i++) {
+      const user_str_msg: string = chatbot[i][0];
+      const ai_str_msg: string = chatbot[i][1];
+      if (user_str_msg && user_str_msg !== '') {
+        message_buffer.push({
+          sender: 'user',
+          text: user_str_msg
+        });
+      }
+      if (ai_str_msg && ai_str_msg !== '') {
+        message_buffer.push({
+          sender: 'bot',
+          text: ai_str_msg
+        });
+      }
+    }
+    setMessages(message_buffer);
+    // set messages
+    (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
+  }, [chatbot]);
+
+  useEffect(() => {
+    setIsEmpty(chatbot.length === 0);
+  }, [chatbot]);
 
 
-    useEffect(() => {
-    setMessages(currentMessages);
+  useEffect(() => {
     // 消息更新后滚动到底部
     const element = messagesEndRef.current as unknown as HTMLDivElement;
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [currentMessages]);
+  }, [messages]);
 
   // 监听等待状态变化
   useEffect(() => {
