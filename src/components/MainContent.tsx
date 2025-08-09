@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Avatar, Typography } from 'antd';
-import { UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Avatar, Typography, message as antdMessage } from 'antd';
+import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -36,6 +36,7 @@ const MainContent: React.FC<MainContentProps> = ({
   const messagesEndRef = useRef(null);
   const [showWaiting, setShowWaiting] = useState(false);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     // loop chatbot, convert to ChatMessage[]
@@ -286,17 +287,71 @@ const MainContent: React.FC<MainContentProps> = ({
                   )}
                 </div>
 
-                {/* 发送时间 */}
-                <div
-                  className={`text-xs text-gray-400 mt-2 ${
-                    message.sender === 'user' ? 'text-right' : 'text-left'
-                  }`}
-                >
-                  {new Date().toLocaleTimeString('zh-CN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </div>
+                {/* 发送时间 - 只在用户消息显示 */}
+                {/* {message.sender === 'user' && (
+                  <div className="text-xs text-gray-400 mt-2 text-right">
+                    {new Date().toLocaleTimeString('zh-CN', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                )} */}
+
+                {/* 用户消息的复制按钮 */}
+                {message.sender === 'user' && (
+                  <div className="flex justify-end mt-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(message.text).then(() => {
+                          antdMessage.success('已复制到剪贴板');
+                          setCopiedMessageId(message.text);
+                          setTimeout(() => {
+                            setCopiedMessageId(null);
+                          }, 2000);
+                        }).catch(() => {
+                          antdMessage.error('复制失败');
+                        });
+                      }}
+                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
+                      style={{ padding: 0, outline: 'none' }}
+                      title="复制"
+                    >
+                      {copiedMessageId === message.text ? (
+                        <CheckOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
+                      ) : (
+                        <CopyOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* AI回复的复制按钮 - 只在回复结束后显示 */}
+                {message.sender === 'bot' && !isStreaming && (
+                  <div className="flex justify-start mt-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(message.text).then(() => {
+                          antdMessage.success('已复制到剪贴板');
+                          setCopiedMessageId(message.text);
+                          setTimeout(() => {
+                            setCopiedMessageId(null);
+                          }, 2000);
+                        }).catch(() => {
+                          antdMessage.error('复制失败');
+                        });
+                      }}
+                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
+                      style={{ padding: 0, outline: 'none' }}
+                      title="复制"
+                    >
+                      {copiedMessageId === message.text ? (
+                        <CheckOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
+                      ) : (
+                        <CopyOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
