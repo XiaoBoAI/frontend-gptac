@@ -24,7 +24,8 @@ import {
   PictureOutlined,
   UserOutlined,
   InfoCircleOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  SaveOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -85,6 +86,7 @@ export interface AdvancedSessionRecord {
   isStreaming?: boolean;
   streamingText?: string;
   user_com: UserInterfaceMsg;
+  session_type: string;
   //messages: ChatMessage[];
 }
 
@@ -97,6 +99,7 @@ interface SidebarProps {
   collapsed?: boolean;
   onCollapse?: (collapsed: boolean) => void;
   onDeleteHistory?: (historyId: string) => void; // 添加删除历史记录的回调
+  onSaveSession?: (historyId: string) => void; // 添加保存会话的回调
   setCurrentModule: any,
   setSpecialKwargs: any,
   specialKwargs: any,
@@ -111,6 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   collapsed = false,
   onCollapse,
   onDeleteHistory,
+  onSaveSession,
   setCurrentModule,
   setSpecialKwargs,
   specialKwargs,
@@ -151,13 +155,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + 
+             date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } else if (days === 1) {
-      return '昨天';
+      return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } else if (days < 7) {
-      return `${days}天前`;
+      return `${days}天前 ` + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     } else {
-      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) + ' ' + 
+             date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     }
   };
 
@@ -186,6 +192,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleDeleteHistory = (e: React.MouseEvent, historyId: string) => {
     e.stopPropagation(); // 阻止事件冒泡，避免触发选择事件
     onDeleteHistory?.(historyId);
+  };
+
+  // 处理保存会话
+  const handleSaveSession = (e: React.MouseEvent, historyId: string) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发选择事件
+    onSaveSession?.(historyId);
   };
 
   return (
@@ -247,7 +259,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               dataSource={AdvancedSessionRecords.slice(0, 8)} // 限制显示数量
               renderItem={(record) => (
                 <List.Item
-                  className={`group cursor-pointer rounded-md mb-1 transition-colors ${
+                  className={`group cursor-pointer rounded-md mb-1 transition-colors relative ${
                     currentSessionId === record.id
                       ? 'bg-blue-50 border-blue-200'
                       : 'hover:bg-gray-50'
@@ -270,27 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                           />
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
-                        {!record.isStreaming && (
-                          <Tooltip title="删除对话">
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<DeleteOutlined />}
-                              onClick={(e) => handleDeleteHistory(e, record.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
-                              style={{
-                                fontSize: '10px',
-                                padding: '2px 4px',
-                                minWidth: 'auto',
-                                height: 'auto',
-                                color: '#999'
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                      </div>
+                      <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
                     </div>
                     <div className="text-xs font-medium text-gray-700 truncate">
                       {getDisplayTitle(record)}
@@ -299,6 +291,44 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <div className="text-xs text-green-600 mt-1 flex items-center">
                         <LoadingOutlined className="mr-1" />
                         回复中...
+                      </div>
+                    )}
+                    
+                    {/* 右下角按钮区域 */}
+                    {!record.isStreaming && (
+                      <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Tooltip title="删除对话">
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => handleDeleteHistory(e, record.id)}
+                            className="hover:bg-red-50 hover:text-red-500"
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 4px',
+                              minWidth: 'auto',
+                              height: 'auto',
+                              color: '#999'
+                            }}
+                          />
+                        </Tooltip>
+                        <Tooltip title="保存会话">
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<SaveOutlined />}
+                            onClick={(e) => handleSaveSession(e, record.id)}
+                            className="hover:bg-blue-50 hover:text-blue-500"
+                            style={{
+                              fontSize: '10px',
+                              padding: '2px 4px',
+                              minWidth: 'auto',
+                              height: 'auto',
+                              color: '#999'
+                            }}
+                          />
+                        </Tooltip>
                       </div>
                     )}
                   </div>
