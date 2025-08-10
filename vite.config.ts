@@ -11,7 +11,7 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd())
 
   // Ensure HTTP_URL is properly set with fallback
-  const httpUrl = env.VITE_HTTP_URL || 'http://localhost:3000'
+  const httpUrl =  `http://localhost:${env.VITE_WEBSOCKET_PORT}`
 
   // 判断是否为 Electron 模式
   const isElectronMode = mode === 'electron' || env.VITE_APP_MODE === 'electron'

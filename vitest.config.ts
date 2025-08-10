@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
 
   // Ensure HTTP_URL is properly set with fallback
-  const httpUrl = env.HTTP_URL || 'http://localhost:3000'
+  const httpUrl =  `http://localhost:${env.VITE_WEBSOCKET_PORT}`
 
   return {
     test: {
