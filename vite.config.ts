@@ -25,63 +25,60 @@ export default defineConfig(({ command, mode }) => {
   const isBuild = command === 'build'
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG
 
-  const plugins = [react()]
-
-  // 只在 Electron 模式下添加 electron 插件
-  if (isElectronMode) {
-    plugins.push(
-      electron({
-        main: {
-          // Shortcut of `build.lib.entry`
-          entry: 'electron/main/index.ts',
-          onstart(args) {
-            if (process.env.VSCODE_DEBUG) {
-              console.log(/* For `.vscode/.debug.script.mjs` */'[startup] Electron App')
-            } else {
-              args.startup()
-            }
-          },
-          vite: {
-            build: {
-              sourcemap,
-              minify: isBuild,
-              outDir: 'dist-electron/main',
-              rollupOptions: {
-                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-              },
-            },
-          },
-        },
-        preload: {
-          // Shortcut of `build.rollupOptions.input`.
-          // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-          input: 'electron/preload/index.ts',
-          vite: {
-            build: {
-              sourcemap: sourcemap ? 'inline' : undefined, // #332
-              minify: isBuild,
-              outDir: 'dist-electron/preload',
-              rollupOptions: {
-                external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-              },
-            },
-          },
-        },
-        // Ployfill the Electron and Node.js API for Renderer process.
-        // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
-        // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
-        renderer: {},
-      })
-    )
-  }
-
   return {
     resolve: {
       alias: {
         '@': path.join(__dirname, 'src')
       },
     },
-    plugins,
+    plugins: [
+      react(),
+      ...(isElectronMode
+        ? [electron({
+            main: {
+              // Shortcut of `build.lib.entry`
+              entry: 'electron/main/index.ts',
+              onstart(args) {
+                if (process.env.VSCODE_DEBUG) {
+                  console.log(/* For `.vscode/.debug.script.mjs` */'[startup] Electron App')
+                } else {
+                  args.startup()
+                }
+              },
+              vite: {
+                build: {
+                  sourcemap,
+                  minify: isBuild,
+                  outDir: 'dist-electron/main',
+                  rollupOptions: {
+                    external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                  },
+                },
+              },
+            },
+            preload: {
+              // Shortcut of `build.rollupOptions.input`.
+              // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
+              input: 'electron/preload/index.ts',
+              vite: {
+                build: {
+                  sourcemap: sourcemap ? 'inline' : undefined, // #332
+                  minify: isBuild,
+                  outDir: 'dist-electron/preload',
+                  rollupOptions: {
+                    external: Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
+                  },
+                },
+              },
+            },
+            // Ployfill the Electron and Node.js API for Renderer process.
+            // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
+            // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
+            renderer: {},
+          })]
+        : []
+      ),
+    ],
     server: {
       // Electron 模式下的服务器配置
       ...(isElectronMode && process.env.VSCODE_DEBUG && (() => {
@@ -100,12 +97,15 @@ export default defineConfig(({ command, mode }) => {
           secure: false,
           configure: (proxy, options) => {
             proxy.on('error', (err, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('proxy error', err);
             });
             proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Sending Request to the Target:', req.method, req.url);
             });
             proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           },
@@ -116,12 +116,15 @@ export default defineConfig(({ command, mode }) => {
           secure: false,
           configure: (proxy, options) => {
             proxy.on('error', (err, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('proxy error', err);
             });
             proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Sending Request to the Target:', req.method, req.url);
             });
             proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           }
@@ -132,12 +135,15 @@ export default defineConfig(({ command, mode }) => {
           secure: false,
           configure: (proxy, options) => {
             proxy.on('error', (err, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('proxy error', err);
             });
             proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Sending Request to the Target:', req.method, req.url);
             });
             proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('http proxy target', httpUrl);
               console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
             });
           }
