@@ -2,6 +2,7 @@ import type { ProgressInfo } from 'electron-updater'
 import { useCallback, useEffect, useState } from 'react'
 import Modal from '@/components/update/Modal'
 import Progress from '@/components/update/Progress'
+import { isElectron, hasIpcRenderer, safeElectronCall } from '@/utils/runtime'
 import './update.css'
 
 const Update = () => {
@@ -18,15 +19,20 @@ const Update = () => {
     onOk?: () => void
   }>({
     onCancel: () => setModalOpen(false),
-    onOk: () => window.ipcRenderer.invoke('start-download'),
+    onOk: () => safeElectronCall(() => (window as any).ipcRenderer.invoke('start-download')),
   })
 
   const checkUpdate = async () => {
+    if (!hasIpcRenderer()) {
+      console.warn('Update check is only available in Electron mode')
+      return
+    }
+
     setChecking(true)
     /**
      * @type {import('electron-updater').UpdateCheckResult | null | { message: string, error: Error }}
      */
-    const result = await window.ipcRenderer.invoke('check-update')
+    const result = await safeElectronCall(() => (window as any).ipcRenderer.invoke('check-update'))
     setProgressInfo({ percent: 0 })
     setChecking(false)
     setModalOpen(true)
@@ -36,7 +42,7 @@ const Update = () => {
     }
   }
 
-  const onUpdateCanAvailable = useCallback((_event: Electron.IpcRendererEvent, arg1: VersionInfo) => {
+  const onUpdateCanAvailable = useCallback((_event: any, arg1: VersionInfo) => {
     setVersionInfo(arg1)
     setUpdateError(undefined)
     // Can be update
@@ -45,7 +51,7 @@ const Update = () => {
         ...state,
         cancelText: 'Cancel',
         okText: 'Update',
-        onOk: () => window.ipcRenderer.invoke('start-download'),
+        onOk: () => safeElectronCall(() => (window as any).ipcRenderer.invoke('start-download')),
       }))
       setUpdateAvailable(true)
     } else {
@@ -53,39 +59,54 @@ const Update = () => {
     }
   }, [])
 
-  const onUpdateError = useCallback((_event: Electron.IpcRendererEvent, arg1: ErrorType) => {
+  const onUpdateError = useCallback((_event: any, arg1: ErrorType) => {
     setUpdateAvailable(false)
     setUpdateError(arg1)
   }, [])
 
-  const onDownloadProgress = useCallback((_event: Electron.IpcRendererEvent, arg1: ProgressInfo) => {
+  const onDownloadProgress = useCallback((_event: any, arg1: ProgressInfo) => {
     setProgressInfo(arg1)
   }, [])
 
-  const onUpdateDownloaded = useCallback((_event: Electron.IpcRendererEvent, ...args: any[]) => {
+  const onUpdateDownloaded = useCallback((_event: any, ...args: any[]) => {
     setProgressInfo({ percent: 100 })
     setModalBtn(state => ({
       ...state,
       cancelText: 'Later',
       okText: 'Install now',
-      onOk: () => window.ipcRenderer.invoke('quit-and-install'),
+      onOk: () => safeElectronCall(() => (window as any).ipcRenderer.invoke('quit-and-install')),
     }))
   }, [])
 
   useEffect(() => {
+    // 只在 Electron 模式下设置事件监听器
+    if (!hasIpcRenderer()) {
+      return
+    }
+
+    const ipcRenderer = (window as any).ipcRenderer
+
     // Get version information and whether to update
-    window.ipcRenderer.on('update-can-available', onUpdateCanAvailable)
-    window.ipcRenderer.on('update-error', onUpdateError)
-    window.ipcRenderer.on('download-progress', onDownloadProgress)
-    window.ipcRenderer.on('update-downloaded', onUpdateDownloaded)
+    ipcRenderer.on('update-can-available', onUpdateCanAvailable)
+    ipcRenderer.on('update-error', onUpdateError)
+    ipcRenderer.on('download-progress', onDownloadProgress)
+    ipcRenderer.on('update-downloaded', onUpdateDownloaded)
 
     return () => {
-      window.ipcRenderer.off('update-can-available', onUpdateCanAvailable)
-      window.ipcRenderer.off('update-error', onUpdateError)
-      window.ipcRenderer.off('download-progress', onDownloadProgress)
-      window.ipcRenderer.off('update-downloaded', onUpdateDownloaded)
+      if (hasIpcRenderer()) {
+        const ipcRenderer = (window as any).ipcRenderer
+        ipcRenderer.off('update-can-available', onUpdateCanAvailable)
+        ipcRenderer.off('update-error', onUpdateError)
+        ipcRenderer.off('download-progress', onDownloadProgress)
+        ipcRenderer.off('update-downloaded', onUpdateDownloaded)
+      }
     }
   }, [])
+
+  // 在 Web 模式下不显示更新组件
+  if (!isElectron()) {
+    return null
+  }
 
   return (
     <>
@@ -124,6 +145,16 @@ const Update = () => {
       </Modal>
     </>
   )
+}
+
+// 导出供外部调用的更新检查函数
+export const checkForUpdates = async () => {
+  if (!hasIpcRenderer()) {
+    console.warn('Update check is only available in Electron mode')
+    return null
+  }
+
+  return safeElectronCall(() => (window as any).ipcRenderer.invoke('check-update'))
 }
 
 export default Update
