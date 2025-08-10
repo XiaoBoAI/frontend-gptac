@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
 
@@ -16,11 +18,134 @@ interface ChatMessage {
   text: string;
 }
 
+// 代码块组件，包含高亮和复制功能
+const CodeBlock: React.FC<{ children: string; className?: string }> = ({ children, className }) => {
+  const [copied, setCopied] = useState(false);
+  
+  // 从className中提取语言类型
+  const language = className ? className.replace('language-', '') : 'text';
+  
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(children);
+      setCopied(true);
+      antdMessage.success('代码已复制到剪贴板');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      antdMessage.error('复制失败');
+    }
+  };
+
+  // 语言名称映射
+  const getLanguageName = (lang: string) => {
+    const languageMap: { [key: string]: string } = {
+      'js': 'JavaScript',
+      'javascript': 'JavaScript',
+      'ts': 'TypeScript',
+      'typescript': 'TypeScript',
+      'py': 'Python',
+      'python': 'Python',
+      'java': 'Java',
+      'cpp': 'C++',
+      'c': 'C',
+      'cs': 'C#',
+      'php': 'PHP',
+      'rb': 'Ruby',
+      'ruby': 'Ruby',
+      'go': 'Go',
+      'rs': 'Rust',
+      'rust': 'Rust',
+      'swift': 'Swift',
+      'kt': 'Kotlin',
+      'kotlin': 'Kotlin',
+      'scala': 'Scala',
+      'html': 'HTML',
+      'css': 'CSS',
+      'scss': 'SCSS',
+      'sass': 'Sass',
+      'less': 'Less',
+      'sql': 'SQL',
+      'json': 'JSON',
+      'xml': 'XML',
+      'yaml': 'YAML',
+      'yml': 'YAML',
+      'toml': 'TOML',
+      'ini': 'INI',
+      'sh': 'Shell',
+      'bash': 'Bash',
+      'zsh': 'Zsh',
+      'ps1': 'PowerShell',
+      'powershell': 'PowerShell',
+      'dockerfile': 'Dockerfile',
+      'docker': 'Dockerfile',
+      'gitignore': 'Git Ignore',
+      'gitattributes': 'Git Attributes',
+      'markdown': 'Markdown',
+      'md': 'Markdown',
+      'txt': 'Text',
+      'text': 'Text'
+    };
+    return languageMap[lang.toLowerCase()] || lang;
+  };
+
+  return (
+    <div className="relative group my-4">
+      {/* 复制按钮 */}
+              <button
+          onClick={handleCopy}
+          className="absolute top-3 right-3 z-10 p-2 rounded-md bg-gray-700 text-gray-300 opacity-100 transition-all duration-200 hover:bg-gray-600 hover:scale-105"
+          title="复制代码"
+        >
+        {copied ? (
+          <CheckOutlined style={{ fontSize: 16 }} />
+        ) : (
+          <CopyOutlined style={{ fontSize: 16 }} />
+        )}
+      </button>
+      
+      {/* 语言标签 */}
+      {/* {language !== 'text' && (
+        <div className="absolute -top-1 left-1 z-10 px-2 py-1 text-xs bg-gray-700 text-blue-500 rounded-md opacity-90 font-medium">
+          {getLanguageName(language)}
+        </div>
+      )} */}
+      
+      {/* 代码高亮 */}
+      <SyntaxHighlighter
+        language={language === 'text' ? undefined : language}
+        style={tomorrow}
+        customStyle={{
+          margin: 0,
+          borderRadius: '12px',
+          fontSize: '14px',
+          lineHeight: '1.6',
+          padding: '20px',
+          //paddingTop: language !== 'text' ? '35px' : '20px',
+          paddingRight: '50px',
+          backgroundColor: '#1a202c',
+          border: 'none',
+          boxShadow: 'none'
+        }}
+        showLineNumbers={language !== 'text'}
+        wrapLines={true}
+        lineNumberStyle={{
+          color: '#718096',
+          fontSize: '12px',
+          paddingRight: '16px',
+          minWidth: '2.5em'
+        }}
+      >
+        {children}
+      </SyntaxHighlighter>
+    </div>
+  );
+};
+
 interface MainContentProps {
   currentSessionType: string;
   chatbot: string[][];
   //currentMessages: ChatMessage[];
-  isEmpty: boolean;
+  // isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
 }
@@ -201,8 +326,8 @@ const MainContent: React.FC<MainContentProps> = ({
                 <div
                   className={`inline-block px-6 py-4 rounded-2xl max-w-full ${
                     message.sender === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-gray-200 text-gray-800'
+                      : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200'
                   }`}
                   style={{
                     wordBreak: 'break-word',
@@ -239,15 +364,15 @@ const MainContent: React.FC<MainContentProps> = ({
                           p: ({ children }) => <div className="mb-3 last:mb-0">{children}</div>,
                           code: ({ children, className }) => {
                             const isInline = !className;
-                            return isInline ? (
-                              <code className="bg-gray-200 px-1 py-0.5 rounded text-sm text-gray-800">
-                                {children}
-                              </code>
-                            ) : (
-                              <pre className="bg-gray-50 text-gray-900 p-4 rounded-lg overflow-x-auto border border-gray-200 shadow-sm">
-                                <code className="text-gray-900 bg-transparent">{children}</code>
-                              </pre>
-                            );
+                            if (isInline) {
+                              return (
+                                <code className="bg-gray-200 px-1 py-0.5 rounded text-sm text-gray-800 font-mono">
+                                  {children}
+                                </code>
+                              );
+                            }
+                            // 使用自定义的代码块组件
+                            return <CodeBlock className={className}>{String(children)}</CodeBlock>;
                           },
                           ul: ({ children }) => <ul className="list-disc list-outside mb-3 ml-4 space-y-1">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-outside mb-3 ml-4 space-y-1">{children}</ol>,
@@ -375,7 +500,7 @@ const MainContent: React.FC<MainContentProps> = ({
 
               {/* 等待动画 */}
               <div className="flex-1 text-left">
-                <div className="inline-block px-6 py-4 rounded-2xl bg-gray-100 text-gray-800">
+                <div className="inline-block px-6 py-4 rounded-2xl bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200">
                   <div className="flex items-center space-x-2">
                     <LoadingOutlined style={{ fontSize: 16, color: '#52c41a' }} />
                     <span className="text-gray-600">正在回复中...</span>

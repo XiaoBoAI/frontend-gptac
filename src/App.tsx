@@ -22,7 +22,7 @@ import HeaderBar from './components/HeaderBar';
 import MainContent from './components/MainContent';
 import InputArea from './components/InputArea';
 import Main from 'electron/main';
-import { UploadRequestOption } from 'antd/es/upload/interface';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
 
 const { Header, Content, Footer } = Layout;
@@ -77,7 +77,7 @@ function App() {
 
     // 检查是否已有同类型的新会话（标题为"新会话"的会话）
     const existingNewSession = sessionRecords.find(record => 
-      record.module === sessionType && 
+      record.session_type === sessionType && 
       record.title === '新会话'
     );
 
@@ -131,6 +131,7 @@ function App() {
         streamingText: '',
         timestamp: Date.now(),
         isStreaming: false,
+        session_type: sessionType,
       }
     ]);
   }
@@ -159,6 +160,7 @@ function App() {
       sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
       sessionRecord.streamingText = '';
       sessionRecord.timestamp = Date.now();
+      sessionRecord.session_type = currentSessionType;
     }
   }
 
@@ -236,7 +238,7 @@ function App() {
       // console.log('handleHistorySelect', sessionRecord.user_com);
       // console.log('handleHistorySelectId', historyId);
       // console.log('handleHistorySelectmodule', sessionRecord.module);
-      setCurrentSessionType(sessionRecord.module);
+      setCurrentSessionType(sessionRecord.session_type);
       //console.log('currentSessionType', currentSessionType);
       onComReceived(sessionRecord.user_com);
       setCurrentSessionId(historyId);
@@ -253,6 +255,24 @@ function App() {
     }
   };
 
+  // 保存会话
+  const handleSaveSession = async (historyId: string) => {
+    const sessionRecord = sessionRecords.find(record => record.id === historyId);
+
+    if (sessionRecord) {
+      // console.log('handleHistorySelect', sessionRecord.user_com);
+      // console.log('handleHistorySelectId', historyId);
+      // console.log('handleHistorySelectmodule', sessionRecord.module);
+      setCurrentSessionType(sessionRecord.session_type);
+      //console.log('currentSessionType', currentSessionType);
+      onComReceived(sessionRecord.user_com);
+      setCurrentSessionId(historyId);
+
+      setCurrentModule("save_dialog");
+      handleSendMessage(false, null);
+    }
+  };
+
 
   return (
     <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
@@ -265,6 +285,7 @@ function App() {
         collapsed={sidebarCollapsed}
         onCollapse={setSidebarCollapsed}
         onDeleteHistory={handleDeleteHistory}
+        onSaveSession={handleSaveSession}
         setCurrentModule={setCurrentModule}
         setSpecialKwargs={setSpecialKwargs}
         specialKwargs={specialKwargs}

@@ -20,6 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@types/react-syntax-highlighter": "^15.5.13",
     "antd": "^5.26.3",
     "electron-updater": "^6.3.9",
     "github-markdown-css": "^5.8.1",
@@ -27,6 +28,7 @@
     "lodash": "^4.17.21",
     "react-katex": "^3.1.0",
     "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@playwright/test": "^1.48.2",
     "@types/katex": "^0.16.7",
+    "@types/lodash": "^4.17.20",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/react-katex": "^3.0.4",
