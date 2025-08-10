@@ -1,21 +1,15 @@
 {
   "name": "electron-vite-react",
   "version": "2.2.0",
-  "main": "dist-electron/main/index.js",
-  "description": "Electron Vite React boilerplate.",
+  "description": "Vite React Web Application.",
   "author": "草鞋没号 <308487730@qq.com>",
   "license": "MIT",
   "private": true,
-  "debug": {
-    "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7777/"
-    }
-  },
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
-    "preview": "vite preview",
+    "dev": "vite --port 8080",
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 8080",
     "pretest": "vite build --mode=test",
     "test": "vitest run"
   },

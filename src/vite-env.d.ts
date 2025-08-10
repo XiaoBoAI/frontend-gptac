@@ -1,6 +1,3 @@
 /// <reference types="vite/client" />
 
-interface Window {
-  // expose in the `electron/preload/index.ts`
-  ipcRenderer: import('electron').IpcRenderer
-}
+// Web application - no Electron APIs available
