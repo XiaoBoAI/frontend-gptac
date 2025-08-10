@@ -1,6 +1,11 @@
 
 ## 🛫 Quick Setup
 
+### 混合模式支持
+本项目支持两种运行模式：
+- **Web 模式**：纯 Web 应用，可部署到服务器
+- **Electron 模式**：桌面应用，具有完整的系统集成功能
+
 ```sh
 # --------------------------------后端---------------------------------
 # open GPT-Academic-WS
@@ -15,8 +20,20 @@ git clone https://github.com/binary-husky/frontend-gptac.git
 cd frontend-gptac
 # install dependency
 npm install
-# develop
+
+# Web 模式开发 (默认)
 npm run dev
+# 或明确指定
+npm run dev:web
+
+# Electron 模式开发
+npm run dev:electron
+
+# Web 模式构建
+npm run build:web
+
+# Electron 模式构建 (包含打包)
+npm run build:electron
 # --------------------------------git---------------------------------
 git remote set-url origin git@github.com:binary-husky/frontend-gptac.git
 

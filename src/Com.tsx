@@ -152,7 +152,7 @@ function buildUploadUserComInterface(AUTO_USER_COM_INTERFACE: UserInterfaceMsg, 
 }
 
 export function useWebSocketCom() {
-  const [url] = useState(import.meta.env.VITE_WEBSOCKET_URL ?? 'ws://localhost:28000/main');
+  const [url] = useState(`ws://localhost:${import.meta.env.VITE_WEBSOCKET_PORT}/main`);
 
   const beginWebSocketCom = async (
     AUTO_USER_COM_INTERFACE: UserInterfaceMsg,
@@ -163,6 +163,7 @@ export function useWebSocketCom() {
     onErrorCallback: (event: Event) => void,
     onCloseCallback: (event: CloseEvent) => void
   ) => {
+    console.log('begin websocket at', url);
     const ws = new WebSocket(url);
     ws.onopen = () => {
       if (isUploadMode && uploadRequest) {

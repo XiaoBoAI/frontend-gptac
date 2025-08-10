@@ -107,8 +107,6 @@ const InputArea: React.FC<InputAreaProps> = ({
   // 预测用户输入的API调用
   const predictUserInput = async (inputText: string) => {
     try {
-      const httpUrl = import.meta.env.VITE_HTTP_URL || 'http://localhost:28000';
-
       // 获取最后200个字符
       const mainInput = inputText.slice(-1024);
 
@@ -379,12 +377,12 @@ const InputArea: React.FC<InputAreaProps> = ({
 
         {/* 底部控制栏 */}
         <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>
-          <Dropdown 
-            menu={{ 
-              items: menuItems, 
-              selectedKeys: [selectedModel], 
-              onClick: handleMenuClick 
-            }} 
+          <Dropdown
+            menu={{
+              items: menuItems,
+              selectedKeys: [selectedModel],
+              onClick: handleMenuClick
+            }}
             trigger={['click']}
           >
             <Button
