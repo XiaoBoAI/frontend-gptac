@@ -1,0 +1,122 @@
+/* InputArea 响应式样式 */
+
+/* 小屏幕设备 (手机) */
+@media (max-width: 768px) {
+  .input-area-container {
+    padding: 0 8px !important;
+  }
+  
+  .input-area-main {
+    max-width: 100% !important;
+    border-radius: 16px !important;
+  }
+  
+  .input-area-controls {
+    gap: 8px !important;
+    padding: 0 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .input-area-button {
+    font-size: 13px !important;
+    padding: 6px 10px !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  
+  .input-area-textarea {
+    font-size: 16px !important;
+    padding: 20px 50px 20px 20px !important;
+  }
+  
+  .input-area-send-button {
+    width: 36px !important;
+    height: 36px !important;
+    right: 8px !important;
+    bottom: -32px !important;
+  }
+}
+
+/* 中等屏幕设备 (平板) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .input-area-container {
+    padding: 0 12px !important;
+  }
+  
+  .input-area-main {
+    max-width: 90% !important;
+  }
+  
+  .input-area-controls {
+    gap: 10px !important;
+    padding: 0 16px !important;
+  }
+  
+  .input-area-button {
+    font-size: 13px !important;
+    padding: 7px 11px !important;
+  }
+}
+
+/* 大屏幕设备 (桌面) */
+@media (min-width: 1025px) {
+  .input-area-container {
+    padding: 0 16px !important;
+  }
+  
+  .input-area-main {
+    max-width: 1200px !important;
+  }
+  
+  .input-area-controls {
+    gap: 12px !important;
+    padding: 0 18px !important;
+  }
+  
+  .input-area-button {
+    font-size: 14px !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* 超宽屏幕设备 */
+@media (min-width: 1440px) {
+  .input-area-main {
+    max-width: 1400px !important;
+  }
+}
+
+/* 按钮悬停效果 */
+.input-area-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+/* 发送按钮动画 */
+.input-area-send-button {
+  transition: all 0.3s ease;
+}
+
+.input-area-send-button:hover {
+  transform: scale(1.05);
+}
+
+/* 流式状态指示器响应式 */
+@media (max-width: 480px) {
+  .streaming-indicator {
+    font-size: 11px !important;
+    left: 16px !important;
+    top: 6px !important;
+  }
+}
+
+/* 预测提示响应式 */
+@media (max-width: 768px) {
+  .prediction-tooltip {
+    max-width: 300px !important;
+    right: 8px !important;
+    font-size: 11px !important;
+  }
+}

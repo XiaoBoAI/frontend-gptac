@@ -1,5 +1,6 @@
 import { Input, Button, Dropdown, Menu, Tooltip, message, Upload } from 'antd';
 import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
+import ModelSettings from './ModelSettings';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/lib/interface';
 
@@ -26,6 +27,15 @@ interface InputAreaProps {
   setSelectedModel?: (model: string) => void;
   isStreaming?: boolean; // 是否正在流式回复
   onFileUpload?: (options: RcCustomRequestOptions) => void; // 文件上传处理函数
+  // 模型参数相关
+  topP?: number;
+  setTopP?: (value: number) => void;
+  temperature?: number;
+  setTemperature?: (value: number) => void;
+  maxLength?: number | null;
+  setMaxLength?: React.Dispatch<React.SetStateAction<number | null>>;
+  systemPrompt?: string;
+  setSystemPrompt?: (value: string) => void;
 }
 
 // 用户输入预测结果接口
@@ -85,6 +95,15 @@ const InputArea: React.FC<InputAreaProps> = ({
   selectedModel = 'deepseek-chat',
   setSelectedModel,
   isStreaming = false,
+  // 模型参数相关
+  topP = 1,
+  setTopP,
+  temperature = 1.0,
+  setTemperature,
+  maxLength = 3584,
+  setMaxLength,
+  systemPrompt = 'Serve me as a writing and programming assistant. Answer me in Chinese by default.',
+  setSystemPrompt,
 }) => {
   const inputRef = useRef(null);
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
@@ -241,7 +260,7 @@ const InputArea: React.FC<InputAreaProps> = ({
     background: isStreaming ? '#ff4d4f' : (sendDisabled ? '#f3f3f3' : '#1677ff'),
     color: '#fff',
     cursor: 'pointer',
-    transition: 'background 0.2s',
+    transition: 'all 0.2s',
   };
 
   return (
@@ -390,18 +409,47 @@ const InputArea: React.FC<InputAreaProps> = ({
               type="default"
               shape="round"
               size="middle"
-              style={{ borderWidth: 1, fontWeight: 500, fontSize: 14, background: '#fff' }}
+              style={{ 
+                borderWidth: 1, 
+                fontWeight: 500, 
+                fontSize: 14, 
+                background: '#fff',
+                height: 32,
+                padding: '0 16px'
+              }}
             >
               {modelList.find(m => m.key === selectedModel)?.label || '深度思考'} <DownOutlined />
             </Button>
           </Dropdown>
+
+          {/* 模型参数设置按钮 */}
+          {setTopP && setTemperature && setMaxLength && setSystemPrompt && (
+            <ModelSettings
+              topP={topP}
+              setTopP={setTopP}
+              temperature={temperature}
+              setTemperature={setTemperature}
+              maxLength={maxLength || 3584}
+              setMaxLength={setMaxLength}
+              systemPrompt={systemPrompt}
+              setSystemPrompt={setSystemPrompt}
+            />
+          )}
 
           <Upload
             multiple
             showUploadList={false}
             customRequest={onFileUpload}
           >
-            <Button icon={<UploadOutlined />}>上传文件</Button>
+            <Button 
+              icon={<UploadOutlined />}
+              style={{ 
+                height: 32,
+                padding: '0 16px'
+              }}
+            >
+              上传文件
+            </Button>
           </Upload>
         </div>
       </div>

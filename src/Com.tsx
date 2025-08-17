@@ -94,17 +94,65 @@ export function useUserInterfaceMsg() {
     AUTO_USER_COM_INTERFACE.current.special_kwargs = specialKwargs;
   }, [specialKwargs]);
 
+  // ------------------------ top_p (map to UserInterfaceMsg.llm_kwargs.top_p) -------------------------
+  const [topP, setTopP] = useState(1.0);
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.llm_kwargs.top_p = topP;
+  }, [topP]);
+
+  // ------------------------ temperature (map to UserInterfaceMsg.llm_kwargs.temperature) -------------------------
+  const [temperature, setTemperature] = useState(1.0);
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.llm_kwargs.temperature = temperature;
+  }, [temperature]);
+
+  // ------------------------ max_tokens (map to UserInterfaceMsg.llm_kwargs.max_tokens) -------------------------
+  const [maxLength, setMaxLength] = useState<number | null>(3584);
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.llm_kwargs.max_length = maxLength;
+  }, [maxLength]);
+
+
 
   const onComReceived = (received_msg: UserInterfaceMsg) => {
     // 更新状态
     setCurrentModule(received_msg.function);
+    
     setMainInput(received_msg.main_input);
-    setSelectedModel(received_msg.llm_kwargs.llm_model);
+    
+    // 智能更新模型选择：
+    // 1. 如果接收到的消息包含有效的模型信息，则更新
+    // 2. 如果当前没有选择模型（selectedModel为空或默认值），则使用接收到的模型
+    // 3. 这样可以避免在用户主动选择模型后被意外覆盖
+    if (received_msg.llm_kwargs && received_msg.llm_kwargs.llm_model) {
+      // 只有在当前模型是默认值或空值时才自动更新
+      // 这样可以保护用户主动选择的模型不被覆盖
+      setSelectedModel(prevModel => {
+        // 如果当前模型是默认值或者是空值，则使用接收到的模型
+        if (!prevModel || prevModel === 'deepseek-chat') {
+          return received_msg.llm_kwargs.llm_model;
+        }
+        // 否则保持用户当前选择的模型
+        return prevModel;
+      });
+    }
+    
     setChatbot(received_msg.chatbot);
     setHistory(received_msg.history);
     setChatbotCookies(received_msg.chatbot_cookies);
-    setSystemPrompt(received_msg.system_prompt);
+    if (received_msg.system_prompt) {
+      setSystemPrompt(received_msg.system_prompt);
+    }
     setSpecialKwargs(received_msg.special_kwargs);
+    if (received_msg.llm_kwargs && received_msg.llm_kwargs.top_p) {
+      setTopP(received_msg.llm_kwargs.top_p);
+    }
+    if (received_msg.llm_kwargs && received_msg.llm_kwargs.temperature) {
+      setTemperature(received_msg.llm_kwargs.temperature);
+    }
+    if (received_msg.llm_kwargs && received_msg.llm_kwargs.max_length) {
+      setMaxLength(received_msg.llm_kwargs.max_length);
+    }
     // 这里可以添加其他处理逻辑，比如更新 UI 或者触发其他副作用
   }
 
@@ -126,6 +174,12 @@ export function useUserInterfaceMsg() {
     setSystemPrompt,
     specialKwargs,
     setSpecialKwargs,
+    topP,
+    setTopP,
+    temperature,
+    setTemperature,
+    maxLength,
+    setMaxLength,
     onComReceived,
   };
 }
@@ -175,6 +229,7 @@ export function useWebSocketCom() {
           }
         );
       } else {
+        console.log('send AUTO_USER_COM_INTERFACE', AUTO_USER_COM_INTERFACE);
         ws.send(JSON.stringify(AUTO_USER_COM_INTERFACE));
       }
       onOpenCallback();
@@ -223,7 +278,7 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
         const result = JSON.parse(xhr.responseText);
 
         const paths: any = [];
-        result.files.forEach(file => {
+        result.files.forEach((file: any) => {
           paths.push(file.path); // 提取每个对象的 path 属性并添加到数组中
         });
         console.log('上传成功:', paths);

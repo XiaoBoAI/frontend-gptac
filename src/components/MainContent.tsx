@@ -165,7 +165,7 @@ const MainContent: React.FC<MainContentProps> = ({
 
   useEffect(() => {
     // loop chatbot, convert to ChatMessage[]
-    console.log('chatbot update');
+    //console.log('chatbot update');
     const message_buffer: ChatMessage[] = [];
     for (let i = 0; i < chatbot.length; i++) {
       const user_str_msg: string = chatbot[i][0];

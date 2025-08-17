@@ -52,7 +52,13 @@ function App() {
     systemPrompt,
     setSystemPrompt,
     specialKwargs,
-    setSpecialKwargs,
+    setSpecialKwargs,    
+    topP,
+    setTopP,
+    temperature,
+    setTemperature,
+    maxLength,
+    setMaxLength,
     onComReceived,
   } = useUserInterfaceMsg();
 
@@ -70,7 +76,7 @@ function App() {
 
 
 
-  const CreateNewSession = (sessionType: string) => {
+  const CreateNewSession = (sessionType: string): string => {
     if (currentSessionId) {
       UpdateSessionRecord();
     }
@@ -86,15 +92,22 @@ function App() {
       console.log('找到同类型新会话，直接沿用:', existingNewSession.id);
       setCurrentSessionId(existingNewSession.id);
       
-      // 恢复该会话的状态
+      // 恢复该会话的状态，但保持用户当前的模型选择
       setChatbot(existingNewSession.user_com.chatbot || []);
       setChatbotCookies(existingNewSession.user_com.chatbot_cookies || {});
       setHistory(existingNewSession.user_com.history || []);
       
-      return; // 直接返回，不创建新会话
+      // 注意：这里不调用 onComReceived，避免覆盖用户当前的模型选择
+      // 只在必要时更新其他状态
+      if (existingNewSession.user_com.system_prompt) {
+        setSystemPrompt(existingNewSession.user_com.system_prompt);
+      }
+      if (existingNewSession.user_com.special_kwargs) {
+        setSpecialKwargs(existingNewSession.user_com.special_kwargs);
+      }
+      
+      return existingNewSession.id; // 返回现有会话ID
     }
-
-    
 
     const newSessionId = Date.now().toString();
     
@@ -102,15 +115,18 @@ function App() {
     setChatbot([]); 
     setChatbotCookies({}); 
     setHistory([]); 
-    // setMainInput(''); // 清空输入框内容
-    // setIsStreaming(false); // 重置流式状态
-    // setIsWaiting(false); // 重置等待状态
 
     // 创建一个干净的 AUTO_USER_COM_INTERFACE 对象
+    // 保持用户当前选择的模型，而不是重置为默认值
     const cleanUserComInterface = {
       function: sessionType,
       main_input: '',
-      llm_kwargs: { llm_model: selectedModel },
+      llm_kwargs: { 
+        llm_model: selectedModel || 'deepseek-chat', // 确保有默认值
+        top_p: topP,
+        temperature: temperature,
+        max_length: maxLength
+      },
       plugin_kwargs: {},
       chatbot: [],
       chatbot_cookies: {},
@@ -134,6 +150,8 @@ function App() {
         session_type: sessionType,
       }
     ]);
+    
+    return newSessionId; // 返回新创建的会话ID
   }
 
   // 修复类型错误：将HTMLInputElement改为HTMLTextAreaElement
@@ -172,8 +190,33 @@ function App() {
 
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
-    if (currentSessionId === null) { CreateNewSession(currentModule); }
-    UpdateSessionRecord();
+    let sessionId = currentSessionId;
+    
+    if (currentSessionId === null) { 
+      sessionId = CreateNewSession(currentModule);
+    }
+    
+    // 使用正确的会话ID更新会话记录
+    const sessionRecord = sessionRecords.find(record => record.id === sessionId);
+    if (sessionRecord) {
+      console.log('更新会话记录' + sessionId);
+      sessionRecord.module = currentModule;
+      
+      // 只有当 MainInput 不为空时才更新标题
+      if (MainInput.trim()) {
+        sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
+      } else if (!sessionRecord.title || sessionRecord.title === '新会话') {
+        // 如果 MainInput 为空且当前标题是"新会话"或空，保持"新会话"标题
+        sessionRecord.title = '新会话';
+      }
+      // 如果 MainInput 为空但已有其他标题，保持原有标题不变
+      
+      sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
+      sessionRecord.streamingText = '';
+      sessionRecord.timestamp = Date.now();
+      sessionRecord.session_type = currentSessionType;
+    }
+    
     setIsWaiting(true);
 
     // 使用 useWebSocketCom hook 创建 WebSocket 连接
@@ -186,6 +229,7 @@ function App() {
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+        //console.log('parsedMessage', parsedMessage);
         onComReceived(parsedMessage);
         setIsStreaming(true);
         setIsWaiting(false);
@@ -213,7 +257,7 @@ function App() {
   };
 
   const handleClear = () => {
-    CreateNewSession(currentModule);
+    CreateNewSession(currentModule); // 忽略返回值
   };
 
 
@@ -222,7 +266,7 @@ function App() {
     //console.log('handleSessionTypeChange', sessionType);
     //setCurrentSessionId(null);
     setCurrentModule(sessionType);
-    CreateNewSession(sessionType);
+    CreateNewSession(sessionType); // 忽略返回值
   };
 
   const handleForceStop = () => {
@@ -251,7 +295,7 @@ function App() {
     setSessionRecords(prev => prev.filter(record => record.id !== historyId));
     // 如果删除的是当前选中的历史记录，创建新会话
     if (currentSessionId === historyId) {
-      CreateNewSession(currentModule);
+      CreateNewSession(currentModule); // 忽略返回值
     }
   };
 
@@ -264,11 +308,15 @@ function App() {
       // console.log('handleHistorySelectId', historyId);
       // console.log('handleHistorySelectmodule', sessionRecord.module);
       setCurrentSessionType(sessionRecord.session_type);
+      //console.log('sessionRecord.user_com', sessionRecord.user_com);
       //console.log('currentSessionType', currentSessionType);
       onComReceived(sessionRecord.user_com);
       setCurrentSessionId(historyId);
 
       setCurrentModule("save_dialog");
+      setIsStreaming(true);
+      setIsWaiting(true);
+      
       handleSendMessage(false, null);
     }
   };
@@ -315,6 +363,15 @@ function App() {
           selectedModel={selectedModel}
           setSelectedModel={setSelectedModel}
           isStreaming={isStreaming}
+          // 传递模型参数
+          topP={topP}
+          setTopP={setTopP}
+          temperature={temperature}
+          setTemperature={setTemperature}
+          maxLength={maxLength}
+          setMaxLength={setMaxLength}
+          systemPrompt={systemPrompt}
+          setSystemPrompt={setSystemPrompt}
         />
       </div>
     </div>
