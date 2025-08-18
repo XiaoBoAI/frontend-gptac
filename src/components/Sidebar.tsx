@@ -1,4 +1,4 @@
-import { Avatar, Menu, List, Typography, Badge, Button, Tooltip } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, message } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
@@ -103,6 +103,8 @@ interface SidebarProps {
   setCurrentModule: any,
   setSpecialKwargs: any,
   specialKwargs: any,
+  isStreaming?: boolean; // 是否正在流式回复
+  isWaiting?: boolean; // 是否正在等待回复
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -118,6 +120,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   setCurrentModule,
   setSpecialKwargs,
   specialKwargs,
+  isStreaming = false,
+  isWaiting = false,
 }) => {
   const [activeSection, setActiveSection] = useState('chat');
 
@@ -132,6 +136,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, [currentSessionType]);
 
   const handleClick: MenuProps['onClick'] = (e) => {
+    // 如果正在流式回复或等待中，阻止切换
+    if (isStreaming || isWaiting) {
+      message.warning('请等待模型回复结束，或提前中断当前对话');
+      return;
+    }
     onSelectSessionType(e.key);
     //console.log('currentSessionType:', currentSessionType);
     //console.log('e.key:', e.key);
@@ -139,6 +148,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   // 处理底部导航区域切换
   const handleSectionChange = (sectionKey: string) => {
+    // 如果正在流式回复或等待中，阻止切换
+    if (isStreaming || isWaiting) {
+      message.warning('请等待模型回复结束，或提前中断当前对话');
+      return;
+    }
     setActiveSection(sectionKey);
     // 只在特定条件下才自动切换模块
     // 例如：只在用户主动点击时才切换，而不是程序自动切换
@@ -222,6 +236,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             setCurrentModule={setCurrentModule}
             setSpecialKwargs={setSpecialKwargs}
             specialKwargs={specialKwargs}
+            isStreaming={isStreaming}
+            isWaiting={isWaiting}
           />
         ) : (
           <Menu
@@ -264,7 +280,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       ? 'bg-blue-50 border-blue-200'
                       : 'hover:bg-gray-50'
                   } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
-                  onClick={() => onHistorySelect(record.id)}
+                  onClick={() => {
+                    // 如果正在流式回复或等待中，且不是当前会话，阻止切换
+                    if ((isStreaming || isWaiting) && currentSessionId !== record.id) {
+                      message.warning('请等待模型回复结束，或提前中断当前对话');
+                      return;
+                    }
+                    onHistorySelect(record.id);
+                  }}
                   style={{ padding: '6px 8px', border: '1px solid transparent' }}
                 >
                   <div className="w-full">

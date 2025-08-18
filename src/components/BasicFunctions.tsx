@@ -38,11 +38,8 @@ const BasicFunctions: React.FC<any> = ({
   specialKwargs,
 }) => {
   const [selectedBasicFunction, setSelectedBasicFunction] = useState<string | null>(null);
-  const [basicFunctionItems, setBasicFunctionItems] = useState([
-    { key: 'paper_write', label: '1', icon: <EditOutlined /> },
-    { key: 'paper_translate', label: '2', icon: <TranslationOutlined /> },
-    { key: 'document_analysis', label: '3', icon: <FileTextOutlined /> },
-  ]);
+  const [basicFunctionItems, setBasicFunctionItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCoreFunctional = async () => {
     try {
@@ -56,6 +53,7 @@ const BasicFunctions: React.FC<any> = ({
                 <FileTextOutlined />
         }));
         setBasicFunctionItems(dynamicItems);
+        setIsLoading(false);
         return;
       }
 
@@ -81,6 +79,8 @@ const BasicFunctions: React.FC<any> = ({
       }
     } catch (error) {
       console.error('Failed to fetch core functional items:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -96,6 +96,11 @@ const BasicFunctions: React.FC<any> = ({
       core_function: e.key,
     })
   };
+
+  // 如果正在加载或没有数据，不渲染菜单
+  if (isLoading || basicFunctionItems.length === 0) {
+    return null;
+  }
 
   return (
     <Menu
