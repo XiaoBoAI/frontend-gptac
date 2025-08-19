@@ -224,7 +224,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const titles = {
       'ai_chat': 'AI对话',
       'academic_chat': '学术对话',
-      'paper_qa': '论文问答',
+      'paper_qa': '快速论文解读',
       'paper_write': '论文写作',
       'paper_translate': '论文翻译',
       'document_analysis': '文档分析',
@@ -241,7 +241,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const descriptions = {
       'ai_chat': '与AI进行智能对话，获取各种问题的答案',
       'academic_chat': '专注于学术领域的深度对话和讨论',
-      'paper_qa': '针对论文内容进行问答，帮助理解学术文献',
+      'paper_qa': '针对论文进行快速解读，帮助理解学术文献',
       'paper_write': '辅助论文写作，提供写作建议和内容生成',
       'paper_translate': '学术论文翻译服务，支持多语言互译',
       'document_analysis': '智能分析文档内容，提取关键信息',

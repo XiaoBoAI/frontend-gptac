@@ -285,7 +285,7 @@ function App() {
 
   const handleSessionTypeChange = (sessionType: string) => {
     setCurrentSessionType(sessionType);
-    //console.log('handleSessionTypeChange', sessionType);
+    console.log('handleSessionTypeChange', sessionType);
     //setCurrentSessionId(null);
     setCurrentModule(sessionType);
     CreateNewSession(sessionType); // 忽略返回值

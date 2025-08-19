@@ -40,7 +40,7 @@ const navigationSections = [
     items: [
       { key: 'chat', label: 'AI对话', icon: <RobotOutlined /> },
       { key: 'academic_chat', label: '学术对话', icon: <BookOutlined /> },
-      { key: 'paper_qa', label: '论文问答', icon: <QuestionCircleOutlined /> },
+      { key: 'paper_qa', label: '快速论文解读', icon: <QuestionCircleOutlined /> },
     ]
   },
   {
@@ -282,8 +282,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                       : 'hover:bg-gray-50'
                   } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
                   onClick={() => {
-                    // 如果正在流式回复或等待中，且不是当前会话，阻止切换
-                    if ((isStreaming || isWaiting) && currentSessionId !== record.id) {
+                    // 如果正在流式回复或等待中，且不是当前会话，阻止切换 && currentSessionId !== record.id
+                    if (isStreaming || isWaiting) {
                       message.warning('请等待模型回复结束，或提前中断当前对话');
                       return;
                     }
