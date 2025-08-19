@@ -120,6 +120,12 @@ export function useUserInterfaceMsg() {
     
     setMainInput(received_msg.main_input);
     
+    
+    
+    setChatbot(received_msg.chatbot);
+    setHistory(received_msg.history);
+    setChatbotCookies(received_msg.chatbot_cookies);
+
     // 智能更新模型选择：
     // 1. 如果接收到的消息包含有效的模型信息，则更新
     // 2. 如果当前没有选择模型（selectedModel为空或默认值），则使用接收到的模型
@@ -136,10 +142,6 @@ export function useUserInterfaceMsg() {
         return prevModel;
       });
     }
-    
-    setChatbot(received_msg.chatbot);
-    setHistory(received_msg.history);
-    setChatbotCookies(received_msg.chatbot_cookies);
     if (received_msg.system_prompt) {
       setSystemPrompt(received_msg.system_prompt);
     }

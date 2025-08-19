@@ -66,13 +66,25 @@ function App() {
   const { beginWebSocketCom } = useWebSocketCom();
 
   // 其他状态和引用
+  const sessionRecordsRef = useRef<AdvancedSessionRecord[]>([]);
   const [sessionRecords, setSessionRecords] = useState<AdvancedSessionRecord[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentSessionType, setCurrentSessionType] = useState('ai_chat'); // 当前会话类型 （ai_chat, academic_chat, paper_qa, paper_write, paper_translate, document_analysis, calculator, image_generator, data_analysis, user_profile, help）
   const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
   const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
   const [ws, setWs] = useState<WebSocket | null>(null);
+
+
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+
+  // 同步 sessionRecords 到 ref
+  useEffect(() => {
+    sessionRecordsRef.current = sessionRecords;
+  }, [sessionRecords]);
 
 
 
@@ -110,6 +122,10 @@ function App() {
     }
 
     const newSessionId = Date.now().toString();
+    setCurrentSessionId(newSessionId);
+    console.log('newSessionId', newSessionId);
+
+    console.log('currentSessionId_new', currentSessionId);
     
     // 先清空所有状态
     setChatbot([]); 
@@ -136,20 +152,25 @@ function App() {
       special_kwargs: specialKwargs
     };
 
-    setCurrentSessionId(newSessionId);
-    setSessionRecords(prev => [
-      ...prev,
-      {
-        id: newSessionId,
-        module: sessionType,
-        title: MainInput.trim() ? MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "") : '新会话',
-        user_com: cleanUserComInterface, // 使用干净的接口对象
-        streamingText: '',
-        timestamp: Date.now(),
-        isStreaming: false,
-        session_type: sessionType,
-      }
-    ]);
+    
+    setSessionRecords(prev => {
+      const newRecords = [
+        ...prev,
+        {
+          id: newSessionId,
+          module: sessionType,
+          title: MainInput.trim() ? MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "") : '新会话',
+          user_com: cleanUserComInterface, // 使用干净的接口对象
+          streamingText: '',
+          timestamp: Date.now(),
+          isStreaming: false,
+          session_type: sessionType,
+        }
+      ];
+      sessionRecordsRef.current = newRecords;
+      return newRecords;
+    });
+    console.log('sessionRecords', sessionRecords);
     
     return newSessionId; // 返回新创建的会话ID
   }
@@ -160,10 +181,10 @@ function App() {
   };
 
   const UpdateSessionRecord = () => {
-    const sessionRecord = sessionRecords.find(record => record.id === currentSessionId);
+    const sessionRecord = sessionRecordsRef.current.find(record => record.id === currentSessionIdRef.current);
     // find session record by id
     if (sessionRecord) {
-      console.log('更新会话记录' + currentSessionId);
+      console.log('更新会话记录' + currentSessionIdRef.current);
       sessionRecord.module = currentModule;
       
       // 只有当 MainInput 不为空时才更新标题
@@ -195,27 +216,28 @@ function App() {
     if (currentSessionId === null) { 
       sessionId = CreateNewSession(currentModule);
     }
+    console.log('currentSessionId', sessionId);
     
     // 使用正确的会话ID更新会话记录
-    const sessionRecord = sessionRecords.find(record => record.id === sessionId);
-    if (sessionRecord) {
-      console.log('更新会话记录' + sessionId);
-      sessionRecord.module = currentModule;
+    // const sessionRecord = sessionRecords.find(record => record.id === sessionId);
+    // if (sessionRecord) {
+    //   console.log('更新会话记录' + sessionId);
+    //   sessionRecord.module = currentModule;
       
-      // 只有当 MainInput 不为空时才更新标题
-      if (MainInput.trim()) {
-        sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
-      } else if (!sessionRecord.title || sessionRecord.title === '新会话') {
-        // 如果 MainInput 为空且当前标题是"新会话"或空，保持"新会话"标题
-        sessionRecord.title = '新会话';
-      }
-      // 如果 MainInput 为空但已有其他标题，保持原有标题不变
+    //   // 只有当 MainInput 不为空时才更新标题
+    //   if (MainInput.trim()) {
+    //     sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
+    //   } else if (!sessionRecord.title || sessionRecord.title === '新会话') {
+    //     // 如果 MainInput 为空且当前标题是"新会话"或空，保持"新会话"标题
+    //     sessionRecord.title = '新会话';
+    //   }
+    //   // 如果 MainInput 为空但已有其他标题，保持原有标题不变
       
-      sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
-      sessionRecord.streamingText = '';
-      sessionRecord.timestamp = Date.now();
-      sessionRecord.session_type = currentSessionType;
-    }
+    //   sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
+    //   sessionRecord.streamingText = '';
+    //   sessionRecord.timestamp = Date.now();
+    //   sessionRecord.session_type = currentSessionType;
+    // }
     
     setIsWaiting(true);
 
@@ -280,11 +302,12 @@ function App() {
     const sessionRecord = sessionRecords.find(record => record.id === historyId);
     if (sessionRecord) {
       // console.log('handleHistorySelect', sessionRecord.user_com);
-      // console.log('handleHistorySelectId', historyId);
+      console.log('handleHistorySelectId', historyId);
       // console.log('handleHistorySelectmodule', sessionRecord.module);
       setCurrentSessionType(sessionRecord.session_type);
       //console.log('currentSessionType', currentSessionType);
       onComReceived(sessionRecord.user_com);
+      console.log('user_com', sessionRecord.user_com);
       setCurrentSessionId(historyId);
       
     }
@@ -292,7 +315,11 @@ function App() {
 
   // 删除历史记录
   const handleDeleteHistory = (historyId: string) => {
-    setSessionRecords(prev => prev.filter(record => record.id !== historyId));
+    setSessionRecords(prev => {
+      const newRecords = prev.filter(record => record.id !== historyId);
+      sessionRecordsRef.current = newRecords;
+      return newRecords;
+    });
     // 如果删除的是当前选中的历史记录，创建新会话
     if (currentSessionId === historyId) {
       CreateNewSession(currentModule); // 忽略返回值
@@ -337,6 +364,8 @@ function App() {
         setCurrentModule={setCurrentModule}
         setSpecialKwargs={setSpecialKwargs}
         specialKwargs={specialKwargs}
+        isStreaming={isStreaming}
+        isWaiting={isWaiting}
       />
       <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
         {/* 右上角个人账号入口 */}

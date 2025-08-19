@@ -190,9 +190,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const getDisplayTitle = (record: AdvancedSessionRecord) => {
     if (record.isStreaming && record.streamingText) {
       const streamingPreview = record.streamingText.substring(0, 20);
-      return `${record.title} (正在回复: ${streamingPreview}...)`;
+      const title = record.title.length > 10 ? record.title.substring(0, 10) + '...' : record.title;
+      return `${title} (正在回复: ${streamingPreview}...)`;
     }
-    return record.title;
+    return record.title.length > 10 ? record.title.substring(0, 10) + '...' : record.title;
   };
 
   const getCurrentSection = () => {
