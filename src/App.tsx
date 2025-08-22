@@ -251,7 +251,7 @@ function App() {
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-        //console.log('parsedMessage', parsedMessage);
+        console.log('parsedMessage', parsedMessage);
         onComReceived(parsedMessage);
         setIsStreaming(true);
         setIsWaiting(false);
@@ -300,6 +300,7 @@ function App() {
 
   const handleHistorySelect = (historyId: string) => {
     const sessionRecord = sessionRecords.find(record => record.id === historyId);
+    console.log('sessionRecord', sessionRecord);
     if (sessionRecord) {
       // console.log('handleHistorySelect', sessionRecord.user_com);
       console.log('handleHistorySelectId', historyId);

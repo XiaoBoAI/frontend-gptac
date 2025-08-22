@@ -7,7 +7,7 @@
   color: inherit;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.4;
   background: transparent !important;
   width: 100%;
   max-width: 100%;
@@ -156,6 +156,14 @@
   background: transparent !important;
 }
 
+/* 分隔线样式优化 */
+.markdown-body hr {
+  margin: 0.5em 0 !important;
+  border: none !important;
+  border-top: 1px solid #e5e7eb !important;
+  height: 1px !important;
+}
+
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3,
@@ -172,30 +180,33 @@
 /* 标题与内容的间距优化 */
 .markdown-body h1 {
   font-size: 1.5em !important;
-  margin-top: 1.5em !important;
+  margin-top: 0.6em !important;
+  margin-bottom: 0.3em !important;
 }
 
 .markdown-body h2 {
   font-size: 1.3em !important;
-  margin-top: 1.3em !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 0.25em !important;
 }
 
 .markdown-body h3 {
   font-size: 1.1em !important;
-  margin-top: 1.1em !important;
+  margin-top: 0.4em !important;
+  margin-bottom: 0.2em !important;
 }
 
 .markdown-body ul,
 .markdown-body ol {
   background: transparent !important;
   padding-left: 1.5em !important;
-  margin: 0.5em 0 !important;
+  margin: 0.15em 0 !important;
 }
 
 .markdown-body li {
   background: transparent !important;
-  margin: 0.25em 0 !important;
-  line-height: 1.6 !important;
+  margin: 0.08em 0 !important;
+  line-height: 1.4 !important;
   padding-left: 0.25em !important;
 }
 
@@ -373,13 +384,14 @@
 
 /* 调试行内公式渲染 */
 .markdown-body p {
-  line-height: 1.6 !important;
+  line-height: 1.4 !important;
+  margin: 0.1em 0 !important;
 }
 
 /* 确保行内公式在段落中正确显示 */
 .markdown-body p .katex {
   font-size: 1em !important;
-  line-height: 1.2 !important;
+  line-height: 1.1 !important;
   vertical-align: baseline !important;
   display: inline !important;
 }
@@ -387,7 +399,7 @@
 /* 处理行内数学公式的特殊样式 */
 .markdown-body .katex-inline {
   font-size: 1em !important;
-  line-height: 1.2 !important;
+  line-height: 1.1 !important;
   vertical-align: baseline !important;
   display: inline !important;
   margin: 0 0.1em !important;
@@ -408,7 +420,7 @@
 
 /* 强制显示行内数学公式 */
 .markdown-body p:has(.katex) {
-  line-height: 1.6 !important;
+  line-height: 1.4 !important;
 }
 
 /* 确保行内公式不被隐藏 */

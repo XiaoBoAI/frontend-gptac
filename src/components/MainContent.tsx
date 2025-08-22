@@ -167,6 +167,7 @@ const MainContent: React.FC<MainContentProps> = ({
     // loop chatbot, convert to ChatMessage[]
     //console.log('chatbot update');
     const message_buffer: ChatMessage[] = [];
+    console.log('chatbot', chatbot);
     for (let i = 0; i < chatbot.length; i++) {
       const user_str_msg: string = chatbot[i][0];
       const ai_str_msg: string = chatbot[i][1];
@@ -361,7 +362,7 @@ const MainContent: React.FC<MainContentProps> = ({
                           footnoteBackLabel: '返回正文'
                         }}
                         components={{
-                          p: ({ children }) => <div className="mb-3 last:mb-0">{children}</div>,
+                          p: ({ children }) => <div className="mb-0.5 last:mb-0">{children}</div>,
                           code: ({ children, className }) => {
                             const isInline = !className;
                             if (isInline) {
@@ -374,16 +375,19 @@ const MainContent: React.FC<MainContentProps> = ({
                             // 使用自定义的代码块组件
                             return <CodeBlock className={className}>{String(children)}</CodeBlock>;
                           },
-                          ul: ({ children }) => <ul className="list-disc list-outside mb-3 ml-4 space-y-1">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal list-outside mb-3 ml-4 space-y-1">{children}</ol>,
-                          li: ({ children }) => <li className="mb-1 leading-relaxed pl-1">{children}</li>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-3 leading-tight">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-2 leading-tight">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-2 leading-tight">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc list-outside mb-1 ml-4 space-y-0.5">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-outside mb-1 ml-4 space-y-0.5">{children}</ol>,
+                          li: ({ children }) => <li className="mb-0.5 leading-relaxed pl-1">{children}</li>,
+                          h1: ({ children }) => <h1 className="text-xl font-bold mb-1 leading-tight">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-lg font-bold mb-1 leading-tight">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-base font-bold mb-1 leading-tight">{children}</h3>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-3">
+                            <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-1">
                               {children}
                             </blockquote>
+                          ),
+                          hr: () => (
+                            <hr className="my-2 border-gray-300" style={{ border: 'none', borderTop: '1px solid #e5e7eb', height: '1px' }} />
                           ),
                           table: ({ children }) => (
                             <div className="overflow-x-auto mb-3">

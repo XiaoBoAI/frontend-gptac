@@ -211,6 +211,11 @@ const InputArea: React.FC<InputAreaProps> = ({
 
   // 处理键盘事件
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // 检查是否正在使用输入法输入
+    if (e.nativeEvent.isComposing) {
+      return; // 正在输入法输入中，不处理键盘事件
+    }
+    
     if (showPrediction && predictions.length > 0) {
       // Tab键应用第一个建议
       if (e.key === 'Tab') {
@@ -360,7 +365,7 @@ const InputArea: React.FC<InputAreaProps> = ({
             onChange={onChange}
             onKeyDown={handleKeyDown}
             placeholder={isStreaming ? '正在回复中，您可以继续输入...' : placeholder}
-            autoSize={{ minRows: 1, maxRows: 3 }}
+            rows={1}
             disabled={false}
             style={{
               border: 'none',
@@ -372,8 +377,22 @@ const InputArea: React.FC<InputAreaProps> = ({
               borderRadius: 24,
               resize: 'none',
               color: '#222',
+              overflowY: 'auto',
             }}
-            onPressEnter={e => { if (!e.shiftKey) { e.preventDefault(); onSend(); } }}
+            onPressEnter={e => { 
+              // 检查是否正在使用输入法输入
+              if (e.nativeEvent.isComposing) {
+                return; // 正在输入法输入中，不触发发送
+              }
+              // 检查输入框是否为空
+              if (!value.trim()) {
+                return; // 输入框为空，不触发发送
+              }
+              if (!e.shiftKey) { 
+                e.preventDefault(); 
+                onSend(); 
+              } 
+            }}
           />
 
           {/* 发送/停止按钮 */}
