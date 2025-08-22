@@ -259,6 +259,8 @@ function App() {
       // onOpen callback
       () => {
         // console.log('WebSocket connection opened for history:', usedSessionId);
+        // 发送消息后清空输入框
+        setMainInput('');
       },
       // onError callback
       (event) => {
@@ -369,11 +371,8 @@ function App() {
         isWaiting={isWaiting}
       />
       <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
-        {/* 右上角个人账号入口 */}
-        {/* <div className="absolute top-4 right-8 flex items-center z-20">
-          <Avatar size={28} src={null} />
-          <span className="ml-2 font-medium text-base">张某某</span>
-        </div> */}
+        {/* 顶部HeaderBar */}
+        <HeaderBar />
         {/* 内容区 */}
         <MainContent
           currentSessionType={currentSessionType}

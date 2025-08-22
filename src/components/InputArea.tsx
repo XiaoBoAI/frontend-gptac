@@ -269,7 +269,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: isEmpty ? 80 : 24 }}>
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: isEmpty ? 60 : 0 }}>
 
 
 
@@ -280,34 +280,18 @@ const InputArea: React.FC<InputAreaProps> = ({
           boxShadow: '0 2px 16px #eee',
           padding: 0,
           width: '80%',
+          maxWidth: '900px',
           minHeight: 80,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           border: '2px solid #f3f3f3',
-          marginBottom: 10,
+          marginBottom: 15,
           marginLeft: 10,
           marginRight: 10,
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>
-          {/* 流式回复状态指示器 */}
-          {isStreaming && (
-            <div style={{
-              position: 'absolute',
-              top: 8,
-              left: 24,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
-              color: '#1677ff',
-              zIndex: 1,
-            }}>
-              <LoadingOutlined style={{ fontSize: 12 }} />
-              <span>回复中...</span>
-            </div>
-          )}
         {/* 用户输入预测提示 */}
         {showPrediction && predictions.length > 0 && (
           <div
@@ -373,11 +357,12 @@ const InputArea: React.FC<InputAreaProps> = ({
               boxShadow: 'none',
               background: 'transparent',
               fontSize: 17,
-              padding: isStreaming ? '32px 64px 24px 24px' : '24px 64px 24px 24px',
+              padding: '24px 64px 24px 24px',
               borderRadius: 24,
               resize: 'none',
               color: '#222',
               overflowY: 'auto',
+              maxWidth: '100%',
             }}
             onPressEnter={e => { 
               // 检查是否正在使用输入法输入
@@ -462,7 +447,14 @@ const InputArea: React.FC<InputAreaProps> = ({
           >
             <Button 
               icon={<UploadOutlined />}
+              type="default"
+              shape="round"
+              size="middle"
               style={{ 
+                borderWidth: 1, 
+                fontWeight: 500, 
+                fontSize: 14, 
+                background: '#fff',
                 height: 32,
                 padding: '0 16px'
               }}

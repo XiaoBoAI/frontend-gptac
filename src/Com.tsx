@@ -118,7 +118,11 @@ export function useUserInterfaceMsg() {
     // 更新状态
     setCurrentModule(received_msg.function);
     
-    setMainInput(received_msg.main_input);
+    // 只有在服务器明确返回非空的main_input时才更新输入框
+    // 这样可以避免在流式回复过程中清空用户的输入
+    if (received_msg.main_input && received_msg.main_input.trim() !== '') {
+      setMainInput(received_msg.main_input);
+    }
     
     
     

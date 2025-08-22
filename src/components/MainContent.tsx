@@ -10,6 +10,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
+import './MainContent.css';
 
 const { Text } = Typography;
 
@@ -292,8 +293,20 @@ const MainContent: React.FC<MainContentProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-white">
-      <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="flex-1 overflow-auto bg-white" style={{
+      scrollbarWidth: 'thin',
+      scrollbarColor: '#d1d5db transparent',
+      // WebKit滚动条样式
+      '--scrollbar-width': '6px',
+      '--scrollbar-track': 'transparent',
+      '--scrollbar-thumb': '#d1d5db',
+      '--scrollbar-thumb-hover': '#9ca3af'
+    } as React.CSSProperties}>
+      <div className="max-w-4xl mx-auto px-6 py-2" style={{
+        // 内联样式定义滚动条
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#d1d5db transparent'
+      }}>
         {messages.map((message, index) => (
           <div
             key={index}
