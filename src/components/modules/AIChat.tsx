@@ -3,6 +3,7 @@ import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAvatar } from '../AvatarContext';
 
 interface ChatMessage {
   sender: 'user' | 'bot';
@@ -15,6 +16,8 @@ interface ChatProps {
 }
 
 const AIChat: React.FC<ChatProps> = ({ messages, messagesEndRef }) => {
+  const { avatarUrl, botAvatarUrl } = useAvatar();
+
   return (
     <div className="chat-container flex-grow overflow-y-auto h-full pb-24 bg-gray-50">
       <List
@@ -26,9 +29,17 @@ const AIChat: React.FC<ChatProps> = ({ messages, messagesEndRef }) => {
             <List.Item.Meta
               avatar={
                 item.sender === 'bot' ? (
-                  <Avatar icon={<RobotOutlined />} className="bot-avatar" />
+                  <Avatar 
+                    src={botAvatarUrl}
+                    icon={<RobotOutlined />} 
+                    className="bot-avatar" 
+                  />
                 ) : (
-                  <Avatar icon={<UserOutlined />} className="user-avatar" />
+                  <Avatar 
+                    src={avatarUrl}
+                    icon={<UserOutlined />} 
+                    className="user-avatar" 
+                  />
                 )
               }
               description={<ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>}

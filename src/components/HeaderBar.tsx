@@ -1,25 +1,22 @@
 import React from 'react';
 import { Avatar, Badge, Button, message } from 'antd';
 import { ShareAltOutlined, BellOutlined } from '@ant-design/icons';
+import { useAvatar } from './AvatarContext';
 
 interface HeaderBarProps {
   username?: string;
-  avatarUrl?: string;
-  generateNewAvatar?: () => void;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ username = '张某某', avatarUrl = '', generateNewAvatar }) => {
+const HeaderBar: React.FC<HeaderBarProps> = ({ username = '张某某' }) => {
+  const { avatarUrl, generateNewAvatar } = useAvatar();
+
   const handleButtonClick = () => {
     message.info('功能正在开发中，敬请期待');
   };
 
   const handleAvatarClick = () => {
-    if (generateNewAvatar) {
-      generateNewAvatar();
-      message.success('头像已更新');
-    } else {
-      message.info('功能正在开发中，敬请期待');
-    }
+    generateNewAvatar();
+    message.success('头像已更新');
   };
 
   return (

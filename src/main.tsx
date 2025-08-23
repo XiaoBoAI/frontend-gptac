@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { isElectron } from './utils/runtime'
+import { AvatarProvider } from './components/AvatarContext'
 
 import './index.css'
 
@@ -17,7 +18,9 @@ if (isElectron()) {
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <App />
+    <AvatarProvider>
+      <App />
+    </AvatarProvider>
   </React.StrictMode>,
 )
 

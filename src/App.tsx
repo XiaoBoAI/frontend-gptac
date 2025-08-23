@@ -24,6 +24,7 @@ import InputArea from './components/InputArea';
 import Main from 'electron/main';
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
+import { useAvatar } from './components/AvatarContext';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -33,6 +34,7 @@ const { Text } = Typography;
 
 // 主应用组件
 function App() {
+  const { updateBotAvatarForNewConversation } = useAvatar();
 
   // Use the custom hook for AUTO_USER_COM_INTERFACE state management
   const {
@@ -92,6 +94,9 @@ function App() {
     if (currentSessionId) {
       UpdateSessionRecord();
     }
+
+    // 为新会话生成新的机器人头像
+    updateBotAvatarForNewConversation();
 
     // 检查是否已有同类型的新会话（标题为"新会话"的会话）
     const existingNewSession = sessionRecords.find(record => 

@@ -11,6 +11,7 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
 import './MainContent.css';
+import { useAvatar } from './AvatarContext';
 
 const { Text } = Typography;
 
@@ -157,7 +158,7 @@ const MainContent: React.FC<MainContentProps> = ({
   isStreaming = false,
   isWaiting = false
 }) => {
-
+  const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef(null);
   const [showWaiting, setShowWaiting] = useState(false);
@@ -323,6 +324,7 @@ const MainContent: React.FC<MainContentProps> = ({
               <div className={`flex-shrink-0 ${message.sender === 'user' ? 'ml-3' : 'mr-3'}`}>
                 <Avatar
                   size={40}
+                  src={message.sender === 'user' ? avatarUrl : botAvatarUrl}
                   icon={message.sender === 'user' ? <UserOutlined /> : <RobotOutlined />}
                   style={{
                     backgroundColor: message.sender === 'user' ? '#1677ff' : '#52c41a',
@@ -507,6 +509,7 @@ const MainContent: React.FC<MainContentProps> = ({
               <div className="flex-shrink-0 mr-3">
                 <Avatar
                   size={40}
+                  src={botAvatarUrl}
                   icon={<RobotOutlined />}
                   style={{
                     backgroundColor: '#52c41a',
