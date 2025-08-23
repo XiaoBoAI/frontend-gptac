@@ -117,15 +117,15 @@ export function useUserInterfaceMsg() {
   const onComReceived = (received_msg: UserInterfaceMsg) => {
     // 更新状态
     setCurrentModule(received_msg.function);
-    
+
     // 只有在服务器明确返回非空的main_input时才更新输入框
     // 这样可以避免在流式回复过程中清空用户的输入
     if (received_msg.main_input && received_msg.main_input.trim() !== '') {
       setMainInput(received_msg.main_input);
     }
-    
-    
-    
+
+
+
     setChatbot(received_msg.chatbot);
     setHistory(received_msg.history);
     setChatbotCookies(received_msg.chatbot_cookies);
@@ -308,3 +308,67 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
     onError?.(error as Error);
   }
 };
+
+
+// 处理文件下载
+export const beginHttpDownload = async (fileUrl: string) => {
+  // 判断是否为 Electron 环境
+  const isElectron = typeof window !== 'undefined' && window.ipcRenderer && typeof (window.ipcRenderer as any).invoke === 'function';
+
+  if (isElectron) {
+    try {
+      // Electron 环境下，使用主进程下载文件到桌面
+      const result = await (window.ipcRenderer as any).invoke('download-file', fileUrl);
+      if (result.success) {
+        // 下载成功，弹出完成提醒
+        alert(`文件已下载到桌面: ${result.filePath}`);
+      } else {
+        alert(`下载失败: ${result.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('下载失败:', error);
+      alert(`下载失败: ${error}`);
+    }
+  } else {
+    // 非 Electron 环境，使用 fetch 下载文件
+    try {
+      const formData = new FormData();
+      formData.append('file_path', fileUrl);
+
+      const response = await fetch('/download', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        // 获取文件名
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'download';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        // 创建下载链接
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        const errorData = await response.json();
+        alert(`下载失败: ${errorData.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('下载失败:', error);
+      alert(`下载失败: ${error}`);
+    }
+  }
+}

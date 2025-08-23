@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm'
 import logoVite from './assets/logo-vite.svg'
 import logoElectron from './assets/logo-electron.svg'
 import './App.css'
-import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from './Com'
+import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom, beginHttpDownload } from './Com'
 import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip } from 'antd';
 import {
   SendOutlined,
@@ -54,7 +54,7 @@ function App() {
     systemPrompt,
     setSystemPrompt,
     specialKwargs,
-    setSpecialKwargs,    
+    setSpecialKwargs,
     topP,
     setTopP,
     temperature,
@@ -99,8 +99,8 @@ function App() {
     updateBotAvatarForNewConversation();
 
     // 检查是否已有同类型的新会话（标题为"新会话"的会话）
-    const existingNewSession = sessionRecords.find(record => 
-      record.session_type === sessionType && 
+    const existingNewSession = sessionRecords.find(record =>
+      record.session_type === sessionType &&
       record.title === '新会话'
     );
 
@@ -108,12 +108,12 @@ function App() {
       // 如果找到同类型的新会话，直接沿用
       console.log('找到同类型新会话，直接沿用:', existingNewSession.id);
       setCurrentSessionId(existingNewSession.id);
-      
+
       // 恢复该会话的状态，但保持用户当前的模型选择
       setChatbot(existingNewSession.user_com.chatbot || []);
       setChatbotCookies(existingNewSession.user_com.chatbot_cookies || {});
       setHistory(existingNewSession.user_com.history || []);
-      
+
       // 注意：这里不调用 onComReceived，避免覆盖用户当前的模型选择
       // 只在必要时更新其他状态
       if (existingNewSession.user_com.system_prompt) {
@@ -122,7 +122,7 @@ function App() {
       if (existingNewSession.user_com.special_kwargs) {
         setSpecialKwargs(existingNewSession.user_com.special_kwargs);
       }
-      
+
       return existingNewSession.id; // 返回现有会话ID
     }
 
@@ -131,18 +131,18 @@ function App() {
     console.log('newSessionId', newSessionId);
 
     console.log('currentSessionId_new', currentSessionId);
-    
+
     // 先清空所有状态
-    setChatbot([]); 
-    setChatbotCookies({}); 
-    setHistory([]); 
+    setChatbot([]);
+    setChatbotCookies({});
+    setHistory([]);
 
     // 创建一个干净的 AUTO_USER_COM_INTERFACE 对象
     // 保持用户当前选择的模型，而不是重置为默认值
     const cleanUserComInterface = {
       function: sessionType,
       main_input: '',
-      llm_kwargs: { 
+      llm_kwargs: {
         llm_model: selectedModel || 'deepseek-chat', // 确保有默认值
         top_p: topP,
         temperature: temperature,
@@ -157,7 +157,7 @@ function App() {
       special_kwargs: specialKwargs
     };
 
-    
+
     setSessionRecords(prev => {
       const newRecords = [
         ...prev,
@@ -176,7 +176,7 @@ function App() {
       return newRecords;
     });
     console.log('sessionRecords', sessionRecords);
-    
+
     return newSessionId; // 返回新创建的会话ID
   }
 
@@ -191,7 +191,7 @@ function App() {
     if (sessionRecord) {
       console.log('更新会话记录' + currentSessionIdRef.current);
       sessionRecord.module = currentModule;
-      
+
       // 只有当 MainInput 不为空时才更新标题
       if (MainInput.trim()) {
         sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
@@ -200,7 +200,7 @@ function App() {
         sessionRecord.title = '新会话';
       }
       // 如果 MainInput 为空但已有其他标题，保持原有标题不变
-      
+
       sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
       sessionRecord.streamingText = '';
       sessionRecord.timestamp = Date.now();
@@ -217,18 +217,18 @@ function App() {
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
     let sessionId = currentSessionId;
-    
-    if (currentSessionId === null) { 
+
+    if (currentSessionId === null) {
       sessionId = CreateNewSession(currentModule);
     }
     console.log('currentSessionId', sessionId);
-    
+
     // 使用正确的会话ID更新会话记录
     // const sessionRecord = sessionRecords.find(record => record.id === sessionId);
     // if (sessionRecord) {
     //   console.log('更新会话记录' + sessionId);
     //   sessionRecord.module = currentModule;
-      
+
     //   // 只有当 MainInput 不为空时才更新标题
     //   if (MainInput.trim()) {
     //     sessionRecord.title = MainInput.substring(0, 30) + (MainInput.length > 30 ? '...' : "");
@@ -237,13 +237,13 @@ function App() {
     //     sessionRecord.title = '新会话';
     //   }
     //   // 如果 MainInput 为空但已有其他标题，保持原有标题不变
-      
+
     //   sessionRecord.user_com = lodash.cloneDeep(AUTO_USER_COM_INTERFACE.current);
     //   sessionRecord.streamingText = '';
     //   sessionRecord.timestamp = Date.now();
     //   sessionRecord.session_type = currentSessionType;
     // }
-    
+
     setIsWaiting(true);
 
     // 使用 useWebSocketCom hook 创建 WebSocket 连接
@@ -317,7 +317,7 @@ function App() {
       onComReceived(sessionRecord.user_com);
       console.log('user_com', sessionRecord.user_com);
       setCurrentSessionId(historyId);
-      
+
     }
   };
 
@@ -351,11 +351,15 @@ function App() {
       setCurrentModule("save_dialog");
       setIsStreaming(true);
       setIsWaiting(true);
-      
+
       handleSendMessage(false, null);
     }
   };
 
+  const downloadfile = () => {
+    const fileUrl = 'file=/home/fuqingxu/gpt_academic_private/gpt_log/default_user/d51f2f0a71/chat_history/聊天记录_2025-08-23-22-23-38.md';
+    beginHttpDownload(fileUrl);
+  }
 
   return (
     <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
@@ -407,6 +411,7 @@ function App() {
           systemPrompt={systemPrompt}
           setSystemPrompt={setSystemPrompt}
         />
+        <Button onClick={downloadfile}> 测试下载 </Button>
       </div>
     </div>
   );

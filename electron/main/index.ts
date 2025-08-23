@@ -121,3 +121,74 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadFile(indexHtml, { hash: arg })
   }
 })
+
+// 处理文件下载
+ipcMain.handle('download-file', async (_, fileUrl: string) => {
+  try {
+    const { net } = require('electron')
+    const fs = require('fs')
+    const path = require('path')
+
+    // 构建下载请求
+    const formData = new URLSearchParams()
+    formData.append('file_path', fileUrl)
+
+    console.log(`准备下载文件，method `+ formData.get('file_path') + ` url: http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`)
+    const request = net.request({
+      method: 'POST',
+      url: `http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+
+    return new Promise((resolve) => {
+      let responseData = Buffer.alloc(0)
+      let filename = 'download'
+
+      request.on('response', (response: any) => {
+        if (response.statusCode !== 200) {
+          resolve({ success: false, error: `HTTP ${response.statusCode}` })
+          return
+        }
+
+        // 获取文件名
+        const contentDisposition = response.headers['content-disposition']
+        if (contentDisposition && typeof contentDisposition === 'string') {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+          if (filenameMatch) {
+            filename = filenameMatch[1]
+          }
+        }
+
+        response.on('data', (chunk: Buffer) => {
+          responseData = Buffer.concat([responseData, chunk])
+        })
+
+        response.on('end', () => {
+          try {
+            // 获取桌面路径
+            const desktopPath = path.join(os.homedir(), 'Desktop')
+            const filePath = path.join(desktopPath, filename)
+
+            // 写入文件
+            fs.writeFileSync(filePath, responseData)
+
+            resolve({ success: true, filePath })
+          } catch (error: any) {
+            resolve({ success: false, error: error?.message || '写入文件失败' })
+          }
+        })
+      })
+
+      request.on('error', (error: any) => {
+        resolve({ success: false, error: error?.message || '网络请求失败' })
+      })
+
+      request.write(formData.toString())
+      request.end()
+    })
+  } catch (error: any) {
+    return { success: false, error: error?.message || '下载失败' }
+  }
+})
