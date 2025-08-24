@@ -20,7 +20,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ username = '张某某' }) => {
   };
 
   return (
-    <div className="header-bar h-14 px-3 flex items-center justify-between border-b border-gray-100 bg-white shadow-sm">
+    <div className="header-bar h-14 px-3 flex items-center justify-between bg-white">
       {/* 左侧内容 */}
       <div className="flex flex-col">
         <h1 className="text-sm font-semibold text-gray-800 mb-0 leading-tight drop-shadow-sm">与学术GPT科研</h1>

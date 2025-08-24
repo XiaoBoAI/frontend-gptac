@@ -249,14 +249,14 @@ const InputArea: React.FC<InputAreaProps> = ({
     setSelectedModel && setSelectedModel(key);
   };
 
-  // 发送按钮样式
+  // 发送按钮样式 - 使用响应式设计，不依赖监听
   const sendDisabled = !value.trim();
   const sendBtnStyle = {
     position: 'absolute' as const,
-    right: 12,
-    bottom: -40,
-    width: 36,
-    height: 36,
+    right: '12px',
+    bottom: '-40px',
+    width: 'clamp(36px, 4vw, 48px)', // 响应式宽度，最小36px，最大48px
+    height: 'clamp(36px, 4vw, 48px)', // 响应式高度
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -265,14 +265,13 @@ const InputArea: React.FC<InputAreaProps> = ({
     background: isStreaming ? '#ff4d4f' : (sendDisabled ? '#f3f3f3' : '#1677ff'),
     color: '#fff',
     cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'all 0.3s ease',
+    borderRadius: '50%',
+    zIndex: 10,
   };
 
   return (
     <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: isEmpty ? 60 : 0 }}>
-
-
-
       <div
         style={{
           background: '#fff',
@@ -289,6 +288,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           marginBottom: 15,
           marginLeft: 10,
           marginRight: 10,
+          position: 'relative', // 确保相对定位
         }}
       >
         <div style={{ position: 'relative', width: '100%' }}>
@@ -356,13 +356,15 @@ const InputArea: React.FC<InputAreaProps> = ({
               outline: 'none',
               boxShadow: 'none',
               background: 'transparent',
-              fontSize: 17,
-              padding: '24px 64px 24px 24px',
+              fontSize: 'clamp(15px, 1.5vw, 17px)', // 响应式字体大小
+              padding: '24px 80px 24px 24px', // 固定右边距，确保按钮不遮挡文字
               borderRadius: 24,
               resize: 'none',
               color: '#222',
               overflowY: 'auto',
               maxWidth: '100%',
+              minHeight: 80,
+              lineHeight: 1.5,
             }}
             onPressEnter={e => { 
               // 检查是否正在使用输入法输入
@@ -387,8 +389,8 @@ const InputArea: React.FC<InputAreaProps> = ({
                 shape="circle"
                 icon={
                 isStreaming
-                    ? <StopCircleIcon size={22} />
-                    : <SendOutlined rotate={-90} style={{fontSize:16}} />
+                    ? <StopCircleIcon size={Math.max(18, Math.min(22, window.innerWidth * 0.02))} />
+                    : <SendOutlined rotate={-90} style={{fontSize: Math.max(14, Math.min(16, window.innerWidth * 0.015))}} />
                 }
                 size="small"
                 disabled={isStreaming ? false : sendDisabled}
@@ -399,7 +401,13 @@ const InputArea: React.FC<InputAreaProps> = ({
         </div>
 
         {/* 底部控制栏 */}
-        <div style={{ display: 'flex', gap: 12, margin: '18px 0 6px 18px', alignItems: 'center' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: 'clamp(8px, 1vw, 12px)', 
+          margin: 'clamp(12px, 2vw, 18px) 0 clamp(4px, 1vw, 6px) clamp(12px, 2vw, 18px)', 
+          alignItems: 'center',
+          flexWrap: 'wrap' // 在小屏幕上允许换行
+        }}>
           <Dropdown
             menu={{
               items: menuItems,
@@ -409,20 +417,30 @@ const InputArea: React.FC<InputAreaProps> = ({
             trigger={['click']}
           >
             <Button
-              icon={modelList.find(m => m.key === selectedModel)?.icon || <span style={{fontSize:14}}>🧠</span>}
+              icon={modelList.find(m => m.key === selectedModel)?.icon || <span style={{fontSize: 'clamp(12px, 1.2vw, 14px)'}}>🧠</span>}
               type="default"
               shape="round"
               size="middle"
               style={{ 
                 borderWidth: 1, 
                 fontWeight: 500, 
-                fontSize: 14, 
+                fontSize: 'clamp(12px, 1.2vw, 14px)', 
                 background: '#fff',
-                height: 32,
-                padding: '0 16px'
+                height: 'clamp(28px, 3.5vw, 36px)',
+                padding: `0 clamp(12px, 1.5vw, 16px)`,
+                minWidth: 'clamp(80px, 10vw, 120px)',
+                transition: 'all 0.3s ease'
               }}
             >
-              {modelList.find(m => m.key === selectedModel)?.label || '深度思考'} <DownOutlined />
+              <span style={{ 
+                fontSize: 'clamp(11px, 1.1vw, 13px)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {modelList.find(m => m.key === selectedModel)?.label || '深度思考'}
+              </span> 
+              <DownOutlined style={{ fontSize: 'clamp(10px, 1vw, 12px)' }} />
             </Button>
           </Dropdown>
 
@@ -446,20 +464,27 @@ const InputArea: React.FC<InputAreaProps> = ({
             customRequest={onFileUpload}
           >
             <Button 
-              icon={<UploadOutlined />}
+              icon={<UploadOutlined style={{ fontSize: 'clamp(12px, 1.2vw, 14px)' }} />}
               type="default"
               shape="round"
               size="middle"
               style={{ 
                 borderWidth: 1, 
                 fontWeight: 500, 
-                fontSize: 14, 
+                fontSize: 'clamp(12px, 1.2vw, 14px)', 
                 background: '#fff',
-                height: 32,
-                padding: '0 16px'
+                height: 'clamp(28px, 3.5vw, 36px)',
+                padding: `0 clamp(12px, 1.5vw, 16px)`,
+                minWidth: 'clamp(70px, 8vw, 100px)',
+                transition: 'all 0.3s ease'
               }}
             >
-              上传文件
+              <span style={{ 
+                fontSize: 'clamp(11px, 1.1vw, 13px)',
+                whiteSpace: 'nowrap'
+              }}>
+                上传文件
+              </span>
             </Button>
           </Upload>
         </div>

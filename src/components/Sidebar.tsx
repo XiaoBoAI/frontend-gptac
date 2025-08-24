@@ -54,27 +54,27 @@ const navigationSections = [
       // { key: 'document_analysis', label: '文档分析', icon: <FileTextOutlined /> },
     ]
   },
-  {
-    key: 'plugins',
-    label: '函数插件区',
-    icon: <ApiOutlined />,
-    color: '#722ed1',
-    items: [
-      { key: 'calculator', label: '计算器', icon: <CalculatorOutlined /> },
-      { key: 'image_generator', label: '图像生成', icon: <PictureOutlined /> },
-      { key: 'data_analysis', label: '数据分析', icon: <ToolOutlined /> },
-    ]
-  },
-  {
-    key: 'others',
-    label: '其他',
-    icon: <SettingOutlined />,
-    color: '#fa8c16',
-    items: [
-      { key: 'user_profile', label: '个人中心', icon: <UserOutlined /> },
-      { key: 'help', label: '帮助文档', icon: <InfoCircleOutlined /> },
-    ]
-  }
+  // {
+  //   key: 'plugins',
+  //   label: '函数插件区',
+  //   icon: <ApiOutlined />,
+  //   color: '#722ed1',
+  //   items: [
+  //     { key: 'calculator', label: '计算器', icon: <CalculatorOutlined /> },
+  //     { key: 'image_generator', label: '图像生成', icon: <PictureOutlined /> },
+  //     { key: 'data_analysis', label: '数据分析', icon: <ToolOutlined /> },
+  //   ]
+  // },
+  // {
+  //   key: 'others',
+  //   label: '其他',
+  //   icon: <SettingOutlined />,
+  //   color: '#fa8c16',
+  //   items: [
+  //     { key: 'user_profile', label: '个人中心', icon: <UserOutlined /> },
+  //     { key: 'help', label: '帮助文档', icon: <InfoCircleOutlined /> },
+  //   ]
+  // }
 ];
 
 // 历史记录接口

@@ -222,6 +222,7 @@ function App() {
       sessionId = CreateNewSession(currentModule);
     }
     console.log('currentSessionId', sessionId);
+    console.log('currentModule', currentModule);
 
     // 使用正确的会话ID更新会话记录
     // const sessionRecord = sessionRecords.find(record => record.id === sessionId);

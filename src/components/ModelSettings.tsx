@@ -59,7 +59,7 @@ const ModelSettings: React.FC<ModelSettingsProps> = ({
     <>
       <Button
         className="input-area-button"
-        icon={<SettingOutlined />}
+        icon={<SettingOutlined style={{ fontSize: 'clamp(12px, 1.2vw, 14px)' }} />}
         type="default"
         shape="round"
         size="middle"
@@ -67,14 +67,21 @@ const ModelSettings: React.FC<ModelSettingsProps> = ({
         style={{ 
           borderWidth: 1, 
           fontWeight: 500, 
-          fontSize: 14,
+          fontSize: 'clamp(12px, 1.2vw, 14px)',
           background: '#fff',
           //color: '#1677ff',
-          height: 32,
-          padding: '0 16px'
+          height: 'clamp(28px, 3.5vw, 36px)',
+          padding: `0 clamp(12px, 1.5vw, 16px)`,
+          minWidth: 'clamp(70px, 8vw, 100px)',
+          transition: 'all 0.3s ease'
         }}
       >
-        模型参数
+        <span style={{ 
+          fontSize: 'clamp(11px, 1.1vw, 13px)',
+          whiteSpace: 'nowrap'
+        }}>
+          模型参数
+        </span>
       </Button>
 
       <Modal
