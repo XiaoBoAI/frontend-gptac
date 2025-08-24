@@ -110,6 +110,25 @@ export default defineConfig(({ command, mode }) => {
             });
           },
         },
+        '/download': {
+          target: httpUrl,
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('http proxy target', httpUrl);
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('http proxy target', httpUrl);
+              console.log('Sending Request to the Target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('http proxy target', httpUrl);
+              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            });
+          },
+        },
         '/core_functional': {
           target: httpUrl,
           changeOrigin: true,

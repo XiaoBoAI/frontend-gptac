@@ -315,10 +315,14 @@ export const beginHttpDownload = async (fileUrl: string) => {
   // 判断是否为 Electron 环境
   const isElectron = typeof window !== 'undefined' && window.ipcRenderer && typeof (window.ipcRenderer as any).invoke === 'function';
 
+  //console.log('isElectron', isElectron);
+
+
   if (isElectron) {
     try {
       // Electron 环境下，使用主进程下载文件到桌面
       const result = await (window.ipcRenderer as any).invoke('download-file', fileUrl);
+      //console.log('result', result);
       if (result.success) {
         // 下载成功，弹出完成提醒
         alert(`文件已下载到桌面: ${result.filePath}`);

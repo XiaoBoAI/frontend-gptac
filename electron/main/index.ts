@@ -122,6 +122,7 @@ ipcMain.handle('open-win', (_, arg) => {
   }
 })
 
+
 // 处理文件下载
 ipcMain.handle('download-file', async (_, fileUrl: string) => {
   try {
@@ -133,10 +134,10 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
     const formData = new URLSearchParams()
     formData.append('file_path', fileUrl)
 
-    console.log(`准备下载文件，method `+ formData.get('file_path') + ` url: http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`)
+    console.log(`准备下载文件，method `+ formData.get('file_path') + ` url: http://localhost:${process.env.VITE_WEBSOCKET_PORT || '28000'}/download`)
     const request = net.request({
       method: 'POST',
-      url: `http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`,
+      url: `http://localhost:${process.env.VITE_WEBSOCKET_PORT || '28000'}/download`,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -146,13 +147,29 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
       let responseData = Buffer.alloc(0)
       let filename = 'download'
 
+      // 从URL中提取文件名
+      try {
+        // 处理URL，移除查询参数
+        const cleanUrl = fileUrl.split('?')[0]
+        const urlParts = cleanUrl.split('/')
+        const urlFilename = urlParts[urlParts.length - 1]
+        
+        // 检查文件名是否有效（包含扩展名且不为空）
+        if (urlFilename && urlFilename.includes('.') && urlFilename.length > 0) {
+          filename = urlFilename
+          //console.log('从URL提取的文件名:', filename)
+        }
+      } catch (error) {
+        console.log('从URL提取文件名失败:', error)
+      }
+
       request.on('response', (response: any) => {
         if (response.statusCode !== 200) {
           resolve({ success: false, error: `HTTP ${response.statusCode}` })
           return
         }
 
-        // 获取文件名
+        // 优先从content-disposition头获取文件名，如果没有则使用URL中的文件名
         const contentDisposition = response.headers['content-disposition']
         if (contentDisposition && typeof contentDisposition === 'string') {
           const filenameMatch = contentDisposition.match(/filename="(.+)"/)

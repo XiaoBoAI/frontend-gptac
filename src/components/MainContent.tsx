@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Avatar, Typography, message as antdMessage } from 'antd';
-import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined, DownloadOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -12,6 +12,7 @@ import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
 import './MainContent.css';
 import { useAvatar } from './AvatarContext';
+import { beginHttpDownload } from '../Com';
 
 const { Text } = Typography;
 
@@ -417,6 +418,49 @@ const MainContent: React.FC<MainContentProps> = ({
                           td: ({ children }) => (
                             <td className="border border-gray-300 px-3 py-2">{children}</td>
                           ),
+                          a: ({ children, href }) => {
+                            // 检查是否为下载链接（通过文件扩展名或特殊标识）
+                            const isDownloadLink = href && (
+                              href.includes('/download') ||
+                              href.includes('/file') ||
+                              href.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|tar|gz|mp3|mp4|avi|mov|jpg|jpeg|png|gif|svg|txt|csv|json|xml|sql|py|js|ts|java|cpp|c|h|html|css|md|bib|enw)$/i) ||
+                              href.includes('download=true') ||
+                              href.includes('attachment')
+                            );
+                            
+                            if (isDownloadLink) {
+                              return (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:underline inline-flex items-center"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (href) {
+                                      beginHttpDownload(href);
+                                    }
+                                  }}
+                                  title="点击下载文件"
+                                >
+                                  {children}
+                                  <DownloadOutlined className="ml-1" style={{ fontSize: '14px' }} />
+                                </a>
+                              );
+                            }
+                            
+                            // 普通链接
+                            return (
+                              <a 
+                                href={href} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:underline"
+                              >
+                                {children}
+                              </a>
+                            );
+                          }
                         }}
                       >
                         {message.text}

@@ -357,7 +357,7 @@ function App() {
   };
 
   const downloadfile = () => {
-    const fileUrl = 'file=/home/fuqingxu/gpt_academic_private/gpt_log/default_user/d51f2f0a71/chat_history/聊天记录_2025-08-23-22-23-38.md';
+    const fileUrl = 'file=/home/project/gpt_academic_private/gpt_log/default_user/d51f2f0a71/chat_history/聊天记录_2025-08-24-02-09-07.txt';
     beginHttpDownload(fileUrl);
   }
 
@@ -411,7 +411,7 @@ function App() {
           systemPrompt={systemPrompt}
           setSystemPrompt={setSystemPrompt}
         />
-        <Button onClick={downloadfile}> 测试下载 </Button>
+        {/* <Button onClick={downloadfile}> 测试下载 </Button> */}
       </div>
     </div>
   );
