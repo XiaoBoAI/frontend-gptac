@@ -257,6 +257,8 @@ function App() {
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+        
+        parsedMessage.function = currentModule;
         console.log('parsedMessage', parsedMessage);
         onComReceived(parsedMessage);
         setIsStreaming(true);

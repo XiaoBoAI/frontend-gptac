@@ -115,8 +115,12 @@ export function useUserInterfaceMsg() {
 
 
   const onComReceived = (received_msg: UserInterfaceMsg) => {
+
+
     // 更新状态
-    //setCurrentModule(received_msg.function);
+    if (received_msg.function) {
+      setCurrentModule(received_msg.function);
+    }
 
     // 只有在服务器明确返回非空的main_input时才更新输入框
     // 这样可以避免在流式回复过程中清空用户的输入
