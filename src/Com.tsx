@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
+import { set } from 'lodash';
 
 export interface UserInterfaceMsg {
   function: string;
@@ -94,6 +95,12 @@ export function useUserInterfaceMsg() {
     AUTO_USER_COM_INTERFACE.current.special_kwargs = specialKwargs;
   }, [specialKwargs]);
 
+    // ------------------------ plugin_kwargs (map to UserInterfaceMsg.plugin_kwargs) -------------------------
+  const [pluginKwargs, setPluginKwargs] = useState<Record<string, any>>({});
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.plugin_kwargs = pluginKwargs;
+  }, [pluginKwargs]);
+
   // ------------------------ top_p (map to UserInterfaceMsg.llm_kwargs.top_p) -------------------------
   const [topP, setTopP] = useState(1.0);
   useEffect(() => {
@@ -154,6 +161,7 @@ export function useUserInterfaceMsg() {
       setSystemPrompt(received_msg.system_prompt);
     }
     setSpecialKwargs(received_msg.special_kwargs);
+    // setPluginKwargs(received_msg.plugin_kwargs); // 不覆盖 PluginKwargs
     if (received_msg.llm_kwargs && received_msg.llm_kwargs.top_p) {
       setTopP(received_msg.llm_kwargs.top_p);
     }
@@ -184,6 +192,8 @@ export function useUserInterfaceMsg() {
     setSystemPrompt,
     specialKwargs,
     setSpecialKwargs,
+    pluginKwargs,
+    setPluginKwargs,
     topP,
     setTopP,
     temperature,

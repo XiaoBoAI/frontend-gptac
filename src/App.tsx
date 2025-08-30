@@ -55,6 +55,8 @@ function App() {
     setSystemPrompt,
     specialKwargs,
     setSpecialKwargs,
+    pluginKwargs,
+    setPluginKwargs,
     topP,
     setTopP,
     temperature,
@@ -257,7 +259,7 @@ function App() {
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
-        
+
         parsedMessage.function = currentModule;
         console.log('parsedMessage', parsedMessage);
         onComReceived(parsedMessage);
@@ -312,6 +314,7 @@ function App() {
     const sessionRecord = sessionRecords.find(record => record.id === historyId);
     console.log('sessionRecord', sessionRecord);
     if (sessionRecord) {
+
       // console.log('handleHistorySelect', sessionRecord.user_com);
       console.log('handleHistorySelectId', historyId);
       // console.log('handleHistorySelectmodule', sessionRecord.module);
@@ -359,9 +362,48 @@ function App() {
     }
   };
 
-  const downloadfile = () => {
-    const fileUrl = 'file=/home/project/gpt_academic_private/gpt_log/default_user/d51f2f0a71/chat_history/聊天记录_2025-08-24-02-09-07.txt';
-    beginHttpDownload(fileUrl);
+  const test_function_01 = async () => {
+    const response = await fetch('/crazy_functional', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+    if (response.ok) {
+      const data = await response.json();
+      console.log('插件列表:', data);
+    }
+  }
+  const test_function_02 = async () => {
+    //  # 有三种插件
+    //  # 第一种：无菜单插件，need_simple_menu=False, need_complex_menu=False
+    //  # - function 走 default_call_path
+    //  # 第二种：简易版菜单插件，need_simple_menu=True, need_complex_menu=False
+    //  # - function 走 default_call_path
+    //  # 第三种：复杂版菜单插件，need_simple_menu=False, need_complex_menu=True
+    //  # - function 走 complex_call_path
+
+    // 第1种：无菜单插件
+    setMainInput('测试')
+    setCurrentModule("crazy_functions.询问多个大语言模型->同时问询"); // 读取 default_call_path
+    handleSendMessage();
+
+    // 第2种：简易版菜单插件
+    setMainInput('测试')
+    setCurrentModule("crazy_functions.批量文件询问->批量文件询问"); // 读取 default_call_path
+    setPluginKwargs({
+      "advanced_arg": "some_file_name", // 第2种插件的拓展参数槽位固定是 advanced_arg
+    });
+    handleSendMessage();
+
+    // 第3种：复杂菜单调用实例: 保存的对话
+    setMainInput('')
+    setCurrentModule("crazy_functions.Conversation_To_File->Conversation_To_File_Wrap"); // 读取 complex_call_path
+    setPluginKwargs({
+      "file_name": "some_file_name",  // 第3种插件的拓展参数槽位不固定，读取complex_menu_def获取拓展参数槽位清单
+    });
+    handleSendMessage();
   }
 
   return (
@@ -414,7 +456,8 @@ function App() {
           systemPrompt={systemPrompt}
           setSystemPrompt={setSystemPrompt}
         />
-        {/* <Button onClick={downloadfile}> 测试下载 </Button> */}
+        <Button onClick={test_function_01}> 测试获取插件json打印到console </Button>
+        <Button onClick={test_function_02}> 测试插件调用 </Button>
       </div>
     </div>
   );
