@@ -524,9 +524,9 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-2 crazy-functions-container" style={{ height: 'calc(100vh - 200px)' }}>
+    <div className="flex-1 overflow-auto p-2 crazy-functions-container" style={{ height: '100%' }}>
       <Collapse 
-        defaultActiveKey={Object.keys(groupedPlugins)} 
+        defaultActiveKey={[]} 
         ghost 
         size="small"
         className="crazy-functions-collapse"

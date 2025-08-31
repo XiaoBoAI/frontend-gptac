@@ -1,6 +1,6 @@
-import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, message } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, message, Flex } from 'antd';
 import type { MenuProps } from 'antd';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
 import BasicFunctions from './BasicFunctions';
 import CrazyFunctions from './CrazyFunctions';
@@ -129,6 +129,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   setMainInput,
 }) => {
   const [activeSection, setActiveSection] = useState('chat');
+  const [splitterPosition, setSplitterPosition] = useState(65); // 分割器位置，默认65%
+  const [isDragging, setIsDragging] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   // 根据当前模块自动设置活跃的导航区域
   useEffect(() => {
@@ -220,12 +223,54 @@ const Sidebar: React.FC<SidebarProps> = ({
     onSaveSession?.(historyId);
   };
 
+  // 处理分割器拖拽
+  const handleSplitterMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !sidebarRef.current) return;
+      
+      const sidebarRect = sidebarRef.current.getBoundingClientRect();
+      const newPosition = ((e.clientY - sidebarRect.top) / sidebarRect.height) * 100;
+      
+      // 限制分割器位置在30%到85%之间，确保上半部分有足够空间
+      const clampedPosition = Math.max(30, Math.min(85, newPosition));
+      setSplitterPosition(clampedPosition);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      // 移除拖拽时的样式
+      document.body.classList.remove('splitter-dragging');
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      // 添加拖拽时的样式
+      document.body.classList.add('splitter-dragging');
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      // 确保清理样式
+      document.body.classList.remove('splitter-dragging');
+    };
+  }, [isDragging]);
+
   return (
     <div className="flex relative">
       {/* 主侧边栏 */}
-      <div className={`sidebar bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
-        collapsed ? 'w-0 opacity-0' : 'w-64 opacity-100'
-      }`}>
+      <div 
+        ref={sidebarRef}
+        className={`sidebar bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
+          collapsed ? 'w-0 opacity-0' : 'w-64 opacity-100'
+        }`}
+      >
         {/* 头部区域 */}
         <div className="flex items-center p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center">
@@ -234,151 +279,165 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* 当前区域的菜单项 */}
-        {activeSection === 'basic' ? (
-          <BasicFunctions
-            currentModule={currentSessionType}
-            onSelectModule={onSelectSessionType}
-            setCurrentModule={setCurrentModule}
-            setSpecialKwargs={setSpecialKwargs}
-            specialKwargs={specialKwargs}
-            isStreaming={isStreaming}
-            isWaiting={isWaiting}
-          />
-        ) : activeSection === 'plugins' ? (
-          <CrazyFunctions
-            currentModule={currentSessionType}
-            onSelectModule={onSelectSessionType}
-            setCurrentModule={setCurrentModule}
-            setSpecialKwargs={setSpecialKwargs}
-            setPluginKwargs={setPluginKwargs}
-            specialKwargs={specialKwargs}
-            isStreaming={isStreaming}
-            isWaiting={isWaiting}
-            setMainInput={setMainInput}
-          />
-        ) : (
-          <Menu
-            mode="inline"
-            selectedKeys={[currentSessionType]}
-            style={{ borderRight: 0, flex: 'none' }}
-            className="border-b border-gray-100"
-            items={currentSection.items.map(item => ({
-              key: item.key,
-              label: (
-                <div className="flex items-center">
-                  <span className="mr-2 text-gray-600">{item.icon}</span>
-                  {item.label}
-                </div>
-              ),
-            }))}
-            onClick={handleClick}
-          />
-        )}
-
-    {/* <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 800px)' }}>  */}
-    <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 280px)' }}>
-          <div className="font-semibold text-xs text-gray-500 mb-2 flex items-center">
-            <ClockCircleOutlined className="mr-1" />
-            历史对话
+        {/* 使用 Flex 组件实现可拖拽分割器 */}
+        <Flex vertical style={{ height: 'calc(100vh - 120px)' }}>
+          {/* 上半部分：当前区域的菜单项 */}
+          <div style={{ height: `${splitterPosition}%`, overflow: 'hidden' }}>
+            {activeSection === 'basic' ? (
+              <BasicFunctions
+                currentModule={currentSessionType}
+                onSelectModule={onSelectSessionType}
+                setCurrentModule={setCurrentModule}
+                setSpecialKwargs={setSpecialKwargs}
+                specialKwargs={specialKwargs}
+                isStreaming={isStreaming}
+                isWaiting={isWaiting}
+              />
+            ) : activeSection === 'plugins' ? (
+              <CrazyFunctions
+                currentModule={currentSessionType}
+                onSelectModule={onSelectSessionType}
+                setCurrentModule={setCurrentModule}
+                setSpecialKwargs={setSpecialKwargs}
+                setPluginKwargs={setPluginKwargs}
+                specialKwargs={specialKwargs}
+                isStreaming={isStreaming}
+                isWaiting={isWaiting}
+                setMainInput={setMainInput}
+              />
+            ) : (
+              <Menu
+                mode="inline"
+                selectedKeys={[currentSessionType]}
+                style={{ borderRight: 0, flex: 'none' }}
+                className="border-b border-gray-100"
+                items={currentSection.items.map(item => ({
+                  key: item.key,
+                  label: (
+                    <div className="flex items-center">
+                      <span className="mr-2 text-gray-600">{item.icon}</span>
+                      {item.label}
+                    </div>
+                  ),
+                }))}
+                onClick={handleClick}
+              />
+            )}
           </div>
 
-          {AdvancedSessionRecords.length === 0 ? (
-            <div className="text-gray-400 text-center text-xs py-4">
-              <MessageOutlined className="text-lg mb-1 block" />
-              暂无历史对话
-            </div>
-          ) : (
-            <List
-              size="small"
-              dataSource={AdvancedSessionRecords.slice(0, 8)} // 限制显示数量
-              renderItem={(record) => (
-                <List.Item
-                  className={`group cursor-pointer rounded-md mb-1 transition-colors relative ${
-                    currentSessionId === record.id
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'hover:bg-gray-50'
-                  } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
-                  onClick={() => {
-                    // 如果正在流式回复或等待中，且不是当前会话，阻止切换 && currentSessionId !== record.id
-                    if (isStreaming || isWaiting) {
-                      message.warning('请等待模型回复结束，或提前中断当前对话');
-                      return;
-                    }
-                    onHistorySelect(record.id);
-                  }}
-                  style={{ padding: '6px 8px', border: '1px solid transparent' }}
-                >
-                  <div className="w-full">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center">
-                        <span className="text-xs mr-1 text-gray-500">
-                          {getModuleIcon(record.module)}
-                        </span>
+          {/* 分割器 */}
+          <div
+            className={`splitter-handle ${isDragging ? 'splitter-dragging' : ''}`}
+            style={{ height: '4px' }}
+            onMouseDown={handleSplitterMouseDown}
+          />
+
+          {/* 下半部分：历史对话 */}
+          <div style={{ height: `${100 - splitterPosition}%`, overflow: 'hidden' }}>
+            <div className="p-2" style={{ height: '100%', overflow: 'auto' }}>
+              <div className="font-semibold text-xs text-gray-500 mb-2 flex items-center">
+                <ClockCircleOutlined className="mr-1" />
+                历史对话
+              </div>
+
+              {AdvancedSessionRecords.length === 0 ? (
+                <div className="text-gray-400 text-center text-xs py-4">
+                  <MessageOutlined className="text-lg mb-1 block" />
+                  暂无历史对话
+                </div>
+              ) : (
+                <List
+                  size="small"
+                  dataSource={AdvancedSessionRecords.slice(0, 8)} // 限制显示数量
+                  renderItem={(record) => (
+                    <List.Item
+                      className={`group cursor-pointer rounded-md mb-1 transition-colors relative ${
+                        currentSessionId === record.id
+                          ? 'bg-blue-50 border-blue-200'
+                          : 'hover:bg-gray-50'
+                      } ${record.isStreaming ? 'border-l-2 border-l-green-400' : ''}`}
+                      onClick={() => {
+                        // 如果正在流式回复或等待中，且不是当前会话，阻止切换 && currentSessionId !== record.id
+                        if (isStreaming || isWaiting) {
+                          message.warning('请等待模型回复结束，或提前中断当前对话');
+                          return;
+                        }
+                        onHistorySelect(record.id);
+                      }}
+                      style={{ padding: '6px 8px', border: '1px solid transparent' }}
+                    >
+                      <div className="w-full">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center">
+                            <span className="text-xs mr-1 text-gray-500">
+                              {getModuleIcon(record.module)}
+                            </span>
+                            {record.isStreaming && (
+                              <Badge
+                                dot
+                                color="green"
+                                className="mr-1"
+                                title="正在回复"
+                              />
+                            )}
+                          </div>
+                          <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
+                        </div>
+                        <div className="text-xs font-medium text-gray-700 truncate">
+                          {getDisplayTitle(record)}
+                        </div>
                         {record.isStreaming && (
-                          <Badge
-                            dot
-                            color="green"
-                            className="mr-1"
-                            title="正在回复"
-                          />
+                          <div className="text-xs text-green-600 mt-1 flex items-center">
+                            <LoadingOutlined className="mr-1" />
+                            回复中...
+                          </div>
+                        )}
+                        
+                        {/* 右下角按钮区域 */}
+                        {!record.isStreaming && (
+                          <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Tooltip title="删除对话">
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<DeleteOutlined />}
+                                onClick={(e) => handleDeleteHistory(e, record.id)}
+                                className="hover:bg-red-50 hover:text-red-500"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 4px',
+                                  minWidth: 'auto',
+                                  height: 'auto',
+                                  color: '#999'
+                                }}
+                              />
+                            </Tooltip>
+                            <Tooltip title="保存会话">
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<SaveOutlined />}
+                                onClick={(e) => handleSaveSession(e, record.id)}
+                                className="hover:bg-blue-50 hover:text-blue-500"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 4px',
+                                  minWidth: 'auto',
+                                  height: 'auto',
+                                  color: '#999'
+                                }}
+                              />
+                            </Tooltip>
+                          </div>
                         )}
                       </div>
-                      <Text className="text-xs text-gray-400">{formatTime(record.timestamp)}</Text>
-                    </div>
-                    <div className="text-xs font-medium text-gray-700 truncate">
-                      {getDisplayTitle(record)}
-                    </div>
-                    {record.isStreaming && (
-                      <div className="text-xs text-green-600 mt-1 flex items-center">
-                        <LoadingOutlined className="mr-1" />
-                        回复中...
-                      </div>
-                    )}
-                    
-                    {/* 右下角按钮区域 */}
-                    {!record.isStreaming && (
-                      <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Tooltip title="删除对话">
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<DeleteOutlined />}
-                            onClick={(e) => handleDeleteHistory(e, record.id)}
-                            className="hover:bg-red-50 hover:text-red-500"
-                            style={{
-                              fontSize: '10px',
-                              padding: '2px 4px',
-                              minWidth: 'auto',
-                              height: 'auto',
-                              color: '#999'
-                            }}
-                          />
-                        </Tooltip>
-                        <Tooltip title="保存会话">
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<SaveOutlined />}
-                            onClick={(e) => handleSaveSession(e, record.id)}
-                            className="hover:bg-blue-50 hover:text-blue-500"
-                            style={{
-                              fontSize: '10px',
-                              padding: '2px 4px',
-                              minWidth: 'auto',
-                              height: 'auto',
-                              color: '#999'
-                            }}
-                          />
-                        </Tooltip>
-                      </div>
-                    )}
-                  </div>
-                </List.Item>
+                    </List.Item>
+                  )}
+                />
               )}
-            />
-          )}
-        </div>
+            </div>
+          </div>
+        </Flex>
 
         {/* 底部导航区域切换 - 固定在底部 */}
         <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-gray-100 bottom-nav-container bg-white">
@@ -435,3 +494,71 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
+
+// 添加分割器相关的 CSS 样式
+const splitterStyles = `
+  .splitter-handle {
+    position: relative;
+    cursor: row-resize;
+    background-color: transparent;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  
+  .splitter-handle:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+  
+  .splitter-handle:active {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  /* 添加微妙的边框提示 */
+  .splitter-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 2px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  
+  .splitter-handle:hover::before {
+    opacity: 1;
+  }
+  
+
+  
+  .splitter-dragging {
+    cursor: row-resize !important;
+  }
+  
+  .splitter-dragging * {
+    cursor: row-resize !important;
+    user-select: none !important;
+  }
+  
+  body.splitter-dragging {
+    cursor: row-resize !important;
+    user-select: none !important;
+  }
+  
+  body.splitter-dragging * {
+    cursor: row-resize !important;
+    user-select: none !important;
+  }
+  
+
+`;
+
+// 将样式注入到页面
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = splitterStyles;
+  document.head.appendChild(styleElement);
+}

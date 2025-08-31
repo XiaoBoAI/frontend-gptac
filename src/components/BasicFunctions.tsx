@@ -123,25 +123,55 @@ const BasicFunctions: React.FC<any> = ({
   }
 
   return (
-    <Menu
-      mode="inline"
-      selectedKeys={selectedBasicFunction ? [selectedBasicFunction] : []}
-      style={{ borderRight: 0, flex: 'none' }}
-      className="border-b border-gray-100"
-      items={basicFunctionItems.map(item => ({
-        key: item.key,
-        label: (
-          <div className="flex items-center">
-            <span className="mr-2 text-gray-600">{item.icon}</span>
-            {item.label}
-          </div>
-        ),
-      }))}
-      onClick={handleClick}
-    />
+    <div className="h-full overflow-auto p-2 basic-functions-container">
+      <Menu
+        mode="inline"
+        selectedKeys={selectedBasicFunction ? [selectedBasicFunction] : []}
+        style={{ borderRight: 0, flex: 'none' }}
+        className="border-b border-gray-100"
+        items={basicFunctionItems.map(item => ({
+          key: item.key,
+          label: (
+            <div className="flex items-center">
+              <span className="mr-2 text-gray-600">{item.icon}</span>
+              {item.label}
+            </div>
+          ),
+        }))}
+        onClick={handleClick}
+      />
+    </div>
   );
 };
 
 export default BasicFunctions;
+
+// 添加滚动条样式
+const scrollbarStyles = `
+  /* 滚动条样式优化 */
+  .basic-functions-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .basic-functions-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .basic-functions-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+  
+  .basic-functions-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+`;
+
+// 动态添加样式到页面
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = scrollbarStyles;
+  document.head.appendChild(styleElement);
+}
 
 
