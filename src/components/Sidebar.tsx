@@ -107,6 +107,7 @@ interface SidebarProps {
   specialKwargs: any,
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
+  setMainInput: any,
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -125,6 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   specialKwargs,
   isStreaming = false,
   isWaiting = false,
+  setMainInput,
 }) => {
   const [activeSection, setActiveSection] = useState('chat');
 
@@ -253,6 +255,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             specialKwargs={specialKwargs}
             isStreaming={isStreaming}
             isWaiting={isWaiting}
+            setMainInput={setMainInput}
           />
         ) : (
           <Menu

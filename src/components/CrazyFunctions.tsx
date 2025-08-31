@@ -95,6 +95,7 @@ interface CrazyFunctionsProps {
   specialKwargs: any;
   isStreaming?: boolean;
   isWaiting?: boolean;
+  setMainInput: (input: string) => void;
 }
 
 const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
@@ -106,6 +107,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   specialKwargs,
   isStreaming = false,
   isWaiting = false,
+  setMainInput,
 }) => {
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [functionPlugins, setFunctionPlugins] = useState<FunctionPlugin[]>([]);
@@ -187,6 +189,8 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
       return;
     }
 
+    
+
     setCurrentPlugin(plugin);
     setSelectedPlugin(plugin.name);
 
@@ -203,7 +207,18 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
       if (plugin.complex_menu_def) {
         const defaultValues: any = {};
         Object.entries(plugin.complex_menu_def).forEach(([key, item]: [string, any]) => {
-          defaultValues[key] = item.default_value || item.default_val || '';
+          let defaultValue = item.default_value || item.default_val || '';
+          
+          // 如果输入框需要路径，且 specialKwargs 中存在上传的文件路径，则自动填充
+          if (specialKwargs.uploaded_file_path && 
+              (item.title?.toLowerCase().includes('路径') || 
+               item.description?.toLowerCase().includes('路径') ||
+               key.toLowerCase().includes('path') ||
+               key.toLowerCase().includes('file'))) {
+            defaultValue = specialKwargs.uploaded_file_path;
+          }
+          
+          defaultValues[key] = defaultValue;
         });
         complexMenuForm.setFieldsValue(defaultValues);
       }
@@ -242,6 +257,16 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
     
     console.log('plugin', plugin);
     console.log('menuData', menuData);
+
+    // 检查插件描述是否提到路径参数，且specialKwargs中存在路径
+    if (plugin.description && 
+      (plugin.description.toLowerCase().includes('路径') || 
+       plugin.description.toLowerCase().includes('文件') ||
+       plugin.description.toLowerCase().includes('path') ||
+       plugin.description.toLowerCase().includes('file')) &&
+      specialKwargs.uploaded_file_path) {
+    setMainInput(specialKwargs.uploaded_file_path);
+    }
 
     
     if (plugin.need_simple_menu) {
@@ -499,12 +524,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-2" style={{ height: 'calc(100vh - 200px)' }}>
-      <div className="font-semibold text-xs text-gray-500 mb-3 flex items-center">
-        <ApiOutlined className="mr-1" />
-        函数插件 ({functionPlugins.length})
-      </div>
-
+    <div className="flex-1 overflow-auto p-2 crazy-functions-container" style={{ height: 'calc(100vh - 200px)' }}>
       <Collapse 
         defaultActiveKey={Object.keys(groupedPlugins)} 
         ghost 
@@ -522,7 +542,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                 >
                   {getGroupIcon(groupName)}
                 </span>
-                <span className="font-medium">{groupName}</span>
+                <span className="font-semibold text-base" style={{ color: getGroupColor(groupName) }}>{groupName}</span>
                 <Badge 
                   count={plugins.length} 
                   size="small" 
@@ -539,11 +559,11 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
               borderRadius: '6px',
             }}
           >
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {plugins.map((plugin, index) => (
                 <div
                   key={`${groupName}-${index}`}
-                  className={`p-2 rounded cursor-pointer transition-all duration-200 group ${
+                  className={`p-2 rounded cursor-pointer transition-all duration-200 group plugin-item ${
                     selectedPlugin === plugin.name
                       ? 'bg-blue-50 border border-blue-200'
                       : 'hover:bg-white hover:shadow-sm'
@@ -556,7 +576,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center">
-                        <span className="font-medium text-sm text-gray-700 truncate">
+                        <span className="font-medium text-sm text-gray-800 truncate plugin-name">
                           {plugin.name}
                         </span>
                         {plugin.important && (
@@ -576,7 +596,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                           />
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-2 plugin-description">
                         {plugin.description}
                       </div>
                     </div>
@@ -599,6 +619,25 @@ export default CrazyFunctions;
 
 // 添加样式
 const styles = `
+  /* 滚动条样式优化 */
+  .crazy-functions-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .crazy-functions-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .crazy-functions-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+  
+  .crazy-functions-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Collapse 样式优化 */
   .crazy-functions-collapse .ant-collapse-item {
     border: none !important;
     background: transparent !important;
@@ -606,7 +645,48 @@ const styles = `
   
   .crazy-functions-collapse .ant-collapse-header {
     padding: 8px 12px !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    position: relative !important;
+  }
+  
+  /* 自定义箭头样式 */
+  .crazy-functions-collapse .ant-collapse-arrow {
+    color: inherit !important;
+    font-size: 14px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    opacity: 0.6 !important;
+    margin-right: 8px !important;
+  }
+  
+  .crazy-functions-collapse .ant-collapse-header:hover .ant-collapse-arrow {
+    opacity: 0.9 !important;
+    transform: scale(1.05) !important;
+  }
+  
+  /* 展开时的箭头旋转效果 */
+  .crazy-functions-collapse .ant-collapse-item-active .ant-collapse-arrow {
+    transform: rotate(90deg) !important;
+    opacity: 1 !important;
+  }
+  
+  /* 箭头图标优化 */
+  .crazy-functions-collapse .ant-collapse-arrow svg {
+    width: 14px !important;
+    height: 14px !important;
+    fill: currentColor !important;
+  }
+  
+  /* 分组标题悬浮效果 */
+  .crazy-functions-collapse .ant-collapse-header:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+  }
+  
+  /* 展开状态的分组标题样式 */
+  .crazy-functions-collapse .ant-collapse-item-active .ant-collapse-header {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 6px 6px 0 0 !important;
   }
   
   .crazy-functions-collapse .ant-collapse-content {
@@ -616,6 +696,47 @@ const styles = `
   
   .crazy-functions-collapse .ant-collapse-content-box {
     padding: 8px 12px 12px 12px !important;
+  }
+  
+  /* 插件项样式优化 */
+  .plugin-item {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .plugin-item:hover .plugin-name {
+    color: #1890ff !important;
+  }
+  
+  .plugin-item:hover .plugin-description {
+    color: #666 !important;
+  }
+  
+  /* 悬浮时显示完整内容 */
+  .plugin-item:hover .plugin-name {
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  
+  .plugin-item:hover .plugin-description {
+    -webkit-line-clamp: unset !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  
+  /* 默认状态保持截断 */
+  .plugin-name {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .plugin-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
   }
   
   .line-clamp-2 {

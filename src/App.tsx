@@ -91,6 +91,16 @@ function App() {
   }, [sessionRecords]);
 
 
+  useEffect(() => {
+    console.log('specialKwargs', specialKwargs);
+
+    if (specialKwargs.uploaded_file_path) {
+      if (currentModule == "crazy_functions.gpt_5.快速论文解读->快速论文解读" || currentModule == "paper_qa") {
+      setMainInput(specialKwargs.uploaded_file_path);
+    }}
+  }, [specialKwargs]);
+
+
 
   const CreateNewSession = (sessionType: string): string => {
     if (currentSessionId) {
@@ -156,7 +166,8 @@ function App() {
       history: [],
       system_prompt: systemPrompt,
       user_request: { username: 'default_user' },
-      special_kwargs: specialKwargs
+      special_kwargs: specialKwargs,
+      special_state: {}
     };
 
 
@@ -398,11 +409,15 @@ function App() {
     // handleSendMessage();
 
     // // // 第3种：复杂菜单调用实例: 保存的对话
-    setMainInput('')
-    setCurrentModule("crazy_functions.Conversation_To_File->Conversation_To_File_Wrap"); // 读取 complex_call_path
-    setPluginKwargs({
-      "file_name": "some_file_name",  // 第3种插件的拓展参数槽位不固定，读取complex_menu_def获取拓展参数槽位清单
-    });
+    // setMainInput('')
+    // setCurrentModule("crazy_functions.Conversation_To_File->Conversation_To_File_Wrap"); // 读取 complex_call_path
+    // setPluginKwargs({
+    //   "file_name": "some_file_name",  // 第3种插件的拓展参数槽位不固定，读取complex_menu_def获取拓展参数槽位清单
+    // });
+    // handleSendMessage();
+
+    setMainInput('private_upload/default_user/2025-08-31-05-33-48/2406.09246v3.pdf')
+    setCurrentModule("crazy_functions.gpt_5.快速论文解读->快速论文解读"); // 读取 complex_call_path
     handleSendMessage();
   }
 
@@ -424,6 +439,7 @@ function App() {
         specialKwargs={specialKwargs}
         isStreaming={isStreaming}
         isWaiting={isWaiting}
+        setMainInput={setMainInput}
       />
       <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
         {/* 顶部HeaderBar */}
@@ -434,6 +450,7 @@ function App() {
           chatbot={chatbot}
           isStreaming={isStreaming} // 传递流式状态
           isWaiting={isWaiting} // 传递等待状态
+          setSpecialKwargs={setSpecialKwargs}
         />
         <InputArea
           value={MainInput}
@@ -457,8 +474,8 @@ function App() {
           systemPrompt={systemPrompt}
           setSystemPrompt={setSystemPrompt}
         />
-        <Button onClick={test_function_01}> 测试获取插件json打印到console </Button>
-        <Button onClick={test_function_02}> 测试插件调用 </Button>
+        {/* <Button onClick={test_function_01}> 测试获取插件json打印到console </Button> */}
+        {/* <Button onClick={test_function_02}> 测试插件调用 </Button> */}
       </div>
     </div>
   );

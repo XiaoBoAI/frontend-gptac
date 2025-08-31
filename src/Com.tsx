@@ -13,6 +13,7 @@ export interface UserInterfaceMsg {
   system_prompt: string;
   user_request: Record<string, any>;
   special_kwargs: Record<string, any>;
+  special_state: Record<string, any>;
 }
 
 
@@ -35,7 +36,8 @@ export function useUserInterfaceMsg() {
     history: [],
     system_prompt: '',
     user_request: {'username': 'default_user'},
-    special_kwargs: {}
+    special_kwargs: {},
+    special_state: {}
   });
   // 请不要在 Com.tsx 源文件外面修改 AUTO_USER_COM_INTERFACE
 
@@ -135,6 +137,29 @@ export function useUserInterfaceMsg() {
       setMainInput(received_msg.main_input);
     }
 
+    // setSpecialKwargs(received_msg.special_kwargs);
+
+    if(received_msg.special_state["msg"] == "完成上传") {
+      const last_chatbot_msg = received_msg.chatbot[received_msg.chatbot.length-1][1];
+
+      //console.log('last_chatbot_msg', last_chatbot_msg);
+      
+      // 从上传完成消息中提取文件路径
+      if (last_chatbot_msg && typeof last_chatbot_msg === 'string') {
+        // 从 Markdown 表格中提取文件路径
+        const filePathMatch = last_chatbot_msg.match(/\|.*\|\s*\n\|.*\|\s*\n\|.*(private_upload\/[^\s|]+)\s*\|/);
+
+          console.log('filePathMatch', filePathMatch?.[1]);
+        if (filePathMatch && filePathMatch[1]) {
+            const filePath = filePathMatch[1];
+          setSpecialKwargs({
+            ...received_msg.special_kwargs,
+            uploaded_file_path: filePath,
+          });
+        } 
+      }
+    }
+
 
 
     setChatbot(received_msg.chatbot);
@@ -160,7 +185,7 @@ export function useUserInterfaceMsg() {
     if (received_msg.system_prompt) {
       setSystemPrompt(received_msg.system_prompt);
     }
-    setSpecialKwargs(received_msg.special_kwargs);
+    
     // setPluginKwargs(received_msg.plugin_kwargs); // 不覆盖 PluginKwargs
     if (received_msg.llm_kwargs && received_msg.llm_kwargs.top_p) {
       setTopP(received_msg.llm_kwargs.top_p);

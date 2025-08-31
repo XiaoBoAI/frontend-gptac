@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Avatar, Typography, message as antdMessage } from 'antd';
 import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined, DownloadOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
@@ -151,13 +151,15 @@ interface MainContentProps {
   // isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
+  setSpecialKwargs?: (kwargs: any) => void;
 }
 
 const MainContent: React.FC<MainContentProps> = ({
   currentSessionType,
   chatbot,
   isStreaming = false,
-  isWaiting = false
+  isWaiting = false,
+  setSpecialKwargs,
 }) => {
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -166,11 +168,47 @@ const MainContent: React.FC<MainContentProps> = ({
   const [isEmpty, setIsEmpty] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
+  // 智能滚动函数
+  const scrollToBottom = (force = false) => {
+    const element = messagesEndRef.current as unknown as HTMLDivElement;
+    const container = element?.parentElement?.parentElement;
+    
+    if (element && container) {
+      // 检查用户是否在底部附近
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      // 如果用户不在底部附近且不是强制滚动，则不滚动
+      if (!isNearBottom && !force && !isStreaming) {
+        return;
+      }
+      
+      // 使用 requestAnimationFrame 确保在正确的时机执行滚动
+      requestAnimationFrame(() => {
+        // 在流式回复过程中使用 instant 滚动，避免抖动
+        const behavior = isStreaming && !force ? "instant" : "smooth";
+        element.scrollIntoView({ behavior, block: "end" });
+      });
+    }
+  };
+
+  // 简单的防抖函数
+  const debounce = (func: Function, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(null, args), delay);
+    };
+  };
+
+  // 使用 useCallback 优化滚动函数
+  const debouncedScrollToBottom = useCallback(
+    debounce(() => scrollToBottom(), 100),
+    [isStreaming]
+  );
+
   useEffect(() => {
     // loop chatbot, convert to ChatMessage[]
-    //console.log('chatbot update');
     const message_buffer: ChatMessage[] = [];
-    //console.log('chatbot', chatbot);
     for (let i = 0; i < chatbot.length; i++) {
       const user_str_msg: string = chatbot[i][0];
       const ai_str_msg: string = chatbot[i][1];
@@ -188,22 +226,11 @@ const MainContent: React.FC<MainContentProps> = ({
       }
     }
     setMessages(message_buffer);
-    // set messages
-    (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
   }, [chatbot]);
 
   useEffect(() => {
     setIsEmpty(chatbot.length === 0);
   }, [chatbot]);
-
-
-  useEffect(() => {
-    // 消息更新后滚动到底部
-    const element = messagesEndRef.current as unknown as HTMLDivElement;
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [messages]);
 
   // 监听等待状态变化
   useEffect(() => {
@@ -214,13 +241,19 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [isWaiting]);
 
-  // 监听消息变化和流式状态，滚动到底部
+  // 统一的滚动处理逻辑
   useEffect(() => {
-    const element = messagesEndRef.current as unknown as HTMLDivElement;
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "end" });
+    // 只有在有新消息时才滚动
+    if (messages.length > 0) {
+      if (isStreaming) {
+        // 流式回复时立即滚动，不使用动画
+        scrollToBottom();
+      } else {
+        // 非流式回复时使用防抖滚动
+        debouncedScrollToBottom();
+      }
     }
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, debouncedScrollToBottom]);
 
 
 
@@ -295,20 +328,31 @@ const MainContent: React.FC<MainContentProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-white" style={{
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#d1d5db transparent',
-      // WebKit滚动条样式
-      '--scrollbar-width': '6px',
-      '--scrollbar-track': 'transparent',
-      '--scrollbar-thumb': '#d1d5db',
-      '--scrollbar-thumb-hover': '#9ca3af'
-    } as React.CSSProperties}>
-      <div className="max-w-4xl mx-auto px-6 py-2" style={{
-        // 内联样式定义滚动条
+    <div 
+      className="flex-1 overflow-auto bg-white" 
+      style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: '#d1d5db transparent'
-      }}>
+        scrollbarColor: '#d1d5db transparent',
+        // WebKit滚动条样式
+        '--scrollbar-width': '6px',
+        '--scrollbar-track': 'transparent',
+        '--scrollbar-thumb': '#d1d5db',
+        '--scrollbar-thumb-hover': '#9ca3af',
+        // 优化滚动性能
+        scrollBehavior: 'auto',
+        willChange: 'scroll-position'
+      } as React.CSSProperties}
+    >
+      <div 
+        className="max-w-4xl mx-auto px-6 py-2" 
+        style={{
+          // 内联样式定义滚动条
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d1d5db transparent',
+          // 确保内容不会因为滚动而重排
+          contain: 'layout style paint'
+        }}
+      >
         {messages.map((message, index) => (
           <div
             key={index}
