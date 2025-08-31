@@ -3,6 +3,7 @@ import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
 import BasicFunctions from './BasicFunctions';
+import CrazyFunctions from './CrazyFunctions';
 import {
   ClockCircleOutlined,
   MessageOutlined,
@@ -54,17 +55,17 @@ const navigationSections = [
       // { key: 'document_analysis', label: '文档分析', icon: <FileTextOutlined /> },
     ]
   },
-  // {
-  //   key: 'plugins',
-  //   label: '函数插件区',
-  //   icon: <ApiOutlined />,
-  //   color: '#722ed1',
-  //   items: [
-  //     { key: 'calculator', label: '计算器', icon: <CalculatorOutlined /> },
-  //     { key: 'image_generator', label: '图像生成', icon: <PictureOutlined /> },
-  //     { key: 'data_analysis', label: '数据分析', icon: <ToolOutlined /> },
-  //   ]
-  // },
+  {
+    key: 'plugins',
+    label: '函数插件区',
+    icon: <ApiOutlined />,
+    color: '#722ed1',
+    items: [
+      { key: 'calculator', label: '计算器', icon: <CalculatorOutlined /> },
+      { key: 'image_generator', label: '图像生成', icon: <PictureOutlined /> },
+      { key: 'data_analysis', label: '数据分析', icon: <ToolOutlined /> },
+    ]
+  },
   // {
   //   key: 'others',
   //   label: '其他',
@@ -102,6 +103,7 @@ interface SidebarProps {
   onSaveSession?: (historyId: string) => void; // 添加保存会话的回调
   setCurrentModule: any,
   setSpecialKwargs: any,
+  setPluginKwargs: any,
   specialKwargs: any,
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
@@ -119,6 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSaveSession,
   setCurrentModule,
   setSpecialKwargs,
+  setPluginKwargs,
   specialKwargs,
   isStreaming = false,
   isWaiting = false,
@@ -236,6 +239,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             onSelectModule={onSelectSessionType}
             setCurrentModule={setCurrentModule}
             setSpecialKwargs={setSpecialKwargs}
+            specialKwargs={specialKwargs}
+            isStreaming={isStreaming}
+            isWaiting={isWaiting}
+          />
+        ) : activeSection === 'plugins' ? (
+          <CrazyFunctions
+            currentModule={currentSessionType}
+            onSelectModule={onSelectSessionType}
+            setCurrentModule={setCurrentModule}
+            setSpecialKwargs={setSpecialKwargs}
+            setPluginKwargs={setPluginKwargs}
             specialKwargs={specialKwargs}
             isStreaming={isStreaming}
             isWaiting={isWaiting}

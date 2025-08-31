@@ -385,19 +385,19 @@ function App() {
     //  # - function 走 complex_call_path
 
     // 第1种：无菜单插件
-    setMainInput('测试')
-    setCurrentModule("crazy_functions.询问多个大语言模型->同时问询"); // 读取 default_call_path
-    handleSendMessage();
+    // setMainInput('测试')
+    // setCurrentModule("crazy_functions.询问多个大语言模型->同时问询"); // 读取 default_call_path
+    // handleSendMessage();
 
     // 第2种：简易版菜单插件
-    setMainInput('测试')
-    setCurrentModule("crazy_functions.批量文件询问->批量文件询问"); // 读取 default_call_path
-    setPluginKwargs({
-      "advanced_arg": "some_file_name", // 第2种插件的拓展参数槽位固定是 advanced_arg
-    });
-    handleSendMessage();
+    // setMainInput('测试')
+    // setCurrentModule("crazy_functions.批量文件询问->批量文件询问"); // 读取 default_call_path
+    // setPluginKwargs({
+    //   "advanced_arg": "some_file_name", // 第2种插件的拓展参数槽位固定是 advanced_arg
+    // });
+    // handleSendMessage();
 
-    // 第3种：复杂菜单调用实例: 保存的对话
+    // // // 第3种：复杂菜单调用实例: 保存的对话
     setMainInput('')
     setCurrentModule("crazy_functions.Conversation_To_File->Conversation_To_File_Wrap"); // 读取 complex_call_path
     setPluginKwargs({
@@ -420,6 +420,7 @@ function App() {
         onSaveSession={handleSaveSession}
         setCurrentModule={setCurrentModule}
         setSpecialKwargs={setSpecialKwargs}
+        setPluginKwargs={setPluginKwargs}
         specialKwargs={specialKwargs}
         isStreaming={isStreaming}
         isWaiting={isWaiting}
