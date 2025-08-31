@@ -1,4 +1,4 @@
-import { Avatar, Menu, List, Typography, Badge, Button, Tooltip } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Spin, message } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
@@ -6,10 +6,12 @@ import {
   EditOutlined,
   TranslationOutlined,
   FileTextOutlined,
+  LoadingOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 
 const CACHE_KEY = 'core_functional_cache';
-const CACHE_DURATION = 10; // 10 ms
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
 const getFromCache = () => {
   const cached = localStorage.getItem(CACHE_KEY);
@@ -76,9 +78,12 @@ const BasicFunctions: React.FC<any> = ({
                 <FileTextOutlined />
         }));
         setBasicFunctionItems(dynamicItems);
+      } else {
+        message.error('获取基础功能列表失败');
       }
     } catch (error) {
       console.error('Failed to fetch core functional items:', error);
+      message.error('获取基础功能列表失败');
     } finally {
       setIsLoading(false);
     }
@@ -97,9 +102,24 @@ const BasicFunctions: React.FC<any> = ({
     })
   };
 
-  // 如果正在加载或没有数据，不渲染菜单
-  if (isLoading || basicFunctionItems.length === 0) {
-    return null;
+  // 如果正在加载，显示加载状态
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+        <span className="ml-2 text-gray-500">加载基础功能中...</span>
+      </div>
+    );
+  }
+
+  // 如果没有数据，显示空状态
+  if (basicFunctionItems.length === 0) {
+    return (
+      <div className="text-center p-8 text-gray-400">
+        <ApiOutlined className="text-2xl mb-2" />
+        <div>暂无基础功能</div>
+      </div>
+    );
   }
 
   return (
