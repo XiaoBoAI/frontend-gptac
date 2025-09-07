@@ -8,7 +8,7 @@ import logoVite from './assets/logo-vite.svg'
 import logoElectron from './assets/logo-electron.svg'
 import './App.css'
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom, beginHttpDownload } from './Com'
-import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip } from 'antd';
+import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip, message } from 'antd';
 import {
   SendOutlined,
   UserOutlined,
@@ -25,6 +25,7 @@ import Main from 'electron/main';
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
 import { useAvatar } from './components/AvatarContext';
+import ProgressBar from './components/ProgressBar';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -79,6 +80,16 @@ function App() {
   const [isWaiting, setIsWaiting] = useState(false); // 添加等待状态
   const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
   const [ws, setWs] = useState<WebSocket | null>(null);
+  
+  // 上传进度相关状态
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState('');
+  
+  // 下载进度相关状态
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [showDownloadProgress, setShowDownloadProgress] = useState(false);
+  const [downloadFileName, setDownloadFileName] = useState('');
 
 
   useEffect(() => {
@@ -223,9 +234,71 @@ function App() {
 
 
   const onFileUpload = async (uploadRequest: UploadRequestOption) => {
-    // const { file, onProgress, onSuccess, onError } = options;
-    handleSendMessage(true, uploadRequest);
+    const { file } = uploadRequest;
+    
+    // 显示上传进度条
+    const fileName = file instanceof File ? file.name : '未知文件';
+    setUploadFileName(fileName);
+    setUploadProgress(0);
+    setShowUploadProgress(true);
+    
+    // 创建带有进度回调的 uploadRequest
+    const uploadRequestWithProgress = {
+      ...uploadRequest,
+      onProgress: (progress: any) => {
+        setUploadProgress(progress.percent);
+      },
+      onSuccess: () => {
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+      },
+      onError: () => {
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+      }
+    };
+    
+    handleSendMessage(true, uploadRequestWithProgress);
   }
+
+   // 带进度条的下载函数
+  const downloadWithProgress = async (fileUrl: string) => {
+    // 从URL中提取文件名
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || '下载文件';
+    
+    setDownloadFileName(fileName);
+    setDownloadProgress(0);
+    setShowDownloadProgress(true);
+    
+    try {
+      await beginHttpDownload(
+        fileUrl, 
+        (percent: number) => {
+          setDownloadProgress(percent);
+        },
+        (error: string) => {
+          // 下载失败，隐藏进度条并显示错误
+          setShowDownloadProgress(false);
+          setDownloadProgress(0);
+          console.error('下载失败:', error);
+          // 使用 Ant Design 的 message 组件显示错误
+          message.error(`下载失败: ${error}`);
+        }
+      );
+      
+      // 下载完成后隐藏进度条
+      setTimeout(() => {
+        setShowDownloadProgress(false);
+        setDownloadProgress(0);
+      }, 1000);
+    } catch (error) {
+      setShowDownloadProgress(false);
+      setDownloadProgress(0);
+      console.error('下载失败:', error);
+      message.error(`下载失败: ${error}`);
+    }
+  };
 
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
@@ -296,6 +369,13 @@ function App() {
         setIsWaiting(false);
         setIsStreaming(false);
         UpdateSessionRecord();
+      },
+      // onUploadError callback
+      (error: string) => {
+        console.error('上传失败:', error);
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+        message.error(`上传失败: ${error}`);
       }
     );
     setWs(ws);
@@ -320,6 +400,8 @@ function App() {
     setIsStreaming(false);
     UpdateSessionRecord();
   };
+
+ 
 
   const handleHistorySelect = (historyId: string) => {
     const sessionRecord = sessionRecords.find(record => record.id === historyId);
@@ -451,6 +533,7 @@ function App() {
           isStreaming={isStreaming} // 传递流式状态
           isWaiting={isWaiting} // 传递等待状态
           setSpecialKwargs={setSpecialKwargs}
+          onDownload={downloadWithProgress}
         />
         <InputArea
           value={MainInput}
@@ -477,6 +560,30 @@ function App() {
         {/* <Button onClick={test_function_01}> 测试获取插件json打印到console </Button> */}
         {/* <Button onClick={test_function_02}> 测试插件调用 </Button> */}
       </div>
+      
+      {/* 上传进度条 */}
+      <ProgressBar
+        visible={showUploadProgress}
+        percent={uploadProgress}
+        title="文件上传中"
+        description={`正在上传: ${uploadFileName}`}
+        onCancel={() => {
+          setShowUploadProgress(false);
+          setUploadProgress(0);
+        }}
+      />
+      
+      {/* 下载进度条 */}
+      <ProgressBar
+        visible={showDownloadProgress}
+        percent={downloadProgress}
+        title="文件下载中"
+        description={`正在下载: ${downloadFileName}`}
+        onCancel={() => {
+          setShowDownloadProgress(false);
+          setDownloadProgress(0);
+        }}
+      />
     </div>
   );
 }

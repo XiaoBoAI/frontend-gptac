@@ -334,7 +334,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* 下半部分：历史对话 */}
           <div style={{ height: `${100 - splitterPosition}%`, overflow: 'hidden' }}>
-            <div className="p-2" style={{ height: '100%', overflow: 'auto' }}>
+            <div className="p-2 history-scroll-container" style={{ height: '100%', overflow: 'auto' }}>
               <div className="font-semibold text-xs text-gray-500 mb-2 flex items-center">
                 <ClockCircleOutlined className="mr-1" />
                 历史对话
@@ -553,6 +553,23 @@ const splitterStyles = `
     user-select: none !important;
   }
   
+  /* 历史对话滚动条样式 */
+  .history-scroll-container::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .history-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .history-scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+  }
+  
+  .history-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
 
 `;
 

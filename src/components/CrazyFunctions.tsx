@@ -292,8 +292,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
         
         plugin.complex_menu_def = updatedComplexMenuDef;
         console.log('updatedComplexMenuDef', updatedComplexMenuDef);
-        setPluginKwargs({
-            "file_name": updatedComplexMenuDef});
+        setPluginKwargs(updatedComplexMenuDef);
       }
     } else {
       // 无菜单插件

@@ -124,7 +124,7 @@ ipcMain.handle('open-win', (_, arg) => {
 
 
 // 处理文件下载
-ipcMain.handle('download-file', async (_, fileUrl: string) => {
+ipcMain.handle('download-file', async (event, fileUrl: string) => {
   try {
     const { net } = require('electron')
     const fs = require('fs')
@@ -169,6 +169,11 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
           return
         }
 
+        // 获取文件总大小用于进度计算
+        const contentLength = response.headers['content-length']
+        const total = contentLength ? parseInt(contentLength, 10) : 0
+        let loaded = 0
+
         // 优先从content-disposition头获取文件名，如果没有则使用URL中的文件名
         const contentDisposition = response.headers['content-disposition']
         if (contentDisposition && typeof contentDisposition === 'string') {
@@ -180,6 +185,13 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
 
         response.on('data', (chunk: Buffer) => {
           responseData = Buffer.concat([responseData, chunk])
+          loaded += chunk.length
+          
+          // 发送进度更新到渲染进程
+          if (total > 0) {
+            const percent = Math.round((loaded / total) * 100)
+            event.sender.send('download-progress', percent)
+          }
         })
 
         response.on('end', () => {
@@ -191,6 +203,8 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
             // 写入文件
             fs.writeFileSync(filePath, responseData)
 
+            // 发送完成信号
+            event.sender.send('download-progress', 100)
             resolve({ success: true, filePath })
           } catch (error: any) {
             resolve({ success: false, error: error?.message || '写入文件失败' })

@@ -152,6 +152,7 @@ interface MainContentProps {
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
   setSpecialKwargs?: (kwargs: any) => void;
+  onDownload?: (fileUrl: string) => void; // 下载处理函数
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -160,6 +161,7 @@ const MainContent: React.FC<MainContentProps> = ({
   isStreaming = false,
   isWaiting = false,
   setSpecialKwargs,
+  onDownload,
 }) => {
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -481,7 +483,9 @@ const MainContent: React.FC<MainContentProps> = ({
                                   className="text-blue-500 hover:underline inline-flex items-center"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    if (href) {
+                                    if (href && onDownload) {
+                                      onDownload(href);
+                                    } else if (href) {
                                       beginHttpDownload(href);
                                     }
                                   }}

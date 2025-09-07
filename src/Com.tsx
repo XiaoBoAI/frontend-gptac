@@ -260,7 +260,8 @@ export function useWebSocketCom() {
     onMessageCallback: (event: MessageEvent) => void,
     onOpenCallback: () => void,
     onErrorCallback: (event: Event) => void,
-    onCloseCallback: (event: CloseEvent) => void
+    onCloseCallback: (event: CloseEvent) => void,
+    onUploadError?: (error: string) => void
   ) => {
     console.log('begin websocket at', url);
     const ws = new WebSocket(url);
@@ -271,7 +272,8 @@ export function useWebSocketCom() {
           uploadRequest,
           (files: Array<string>, error: string) => {
             ws.send(JSON.stringify(buildUploadUserComInterface(AUTO_USER_COM_INTERFACE, files, error)));
-          }
+          },
+          onUploadError
         );
       } else {
         console.log('send AUTO_USER_COM_INTERFACE', AUTO_USER_COM_INTERFACE);
@@ -302,7 +304,7 @@ export function useWebSocketCom() {
 
 
 // 处理文件上传
-const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any) => {
+const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any, onUploadError?: (error: string) => void) => {
   const { file, onProgress, onSuccess, onError } = options;
   const formData = new FormData();
   formData.append('files', file);
@@ -314,6 +316,7 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
     xhr.upload.addEventListener('progress', event => {
       if (event.lengthComputable) {
         const percent = Math.round((event.loaded / event.total) * 100);
+        console.log('上传进度:', percent + '%');
         onProgress?.({ percent });
       }
     });
@@ -335,22 +338,25 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
     });
 
     xhr.addEventListener('error', () => {
-      const error = new Error('上传失败');
-      finishCallback([], '上传失败')
-      onError?.(error);
+      const errorMsg = '网络错误导致上传失败';
+      console.error('上传失败:', errorMsg);
+      finishCallback([], errorMsg);
+      onUploadError?.(errorMsg);
     });
 
     xhr.open('POST', uploadUrl, true);
     xhr.send(formData);
   } catch (error) {
-    finishCallback([], '上传失败');
-    onError?.(error as Error);
+    const errorMsg = error instanceof Error ? error.message : '上传失败';
+    console.error('上传异常:', errorMsg);
+    finishCallback([], errorMsg);
+    onUploadError?.(errorMsg);
   }
 };
 
 
 // 处理文件下载
-export const beginHttpDownload = async (fileUrl: string) => {
+export const beginHttpDownload = async (fileUrl: string, onProgress?: (percent: number) => void, onError?: (error: string) => void) => {
   // 判断是否为 Electron 环境
   const isElectron = typeof window !== 'undefined' && window.ipcRenderer && typeof (window.ipcRenderer as any).invoke === 'function';
 
@@ -358,19 +364,42 @@ export const beginHttpDownload = async (fileUrl: string) => {
 
 
   if (isElectron) {
+    // 监听下载进度
+    const progressHandler = (event: any, percent: number) => {
+      console.log('Electron下载进度:', percent + '%');
+      onProgress?.(percent);
+    };
+    
     try {
+      // 注册进度监听器
+      (window.ipcRenderer as any).on('download-progress', progressHandler);
+      
       // Electron 环境下，使用主进程下载文件到桌面
       const result = await (window.ipcRenderer as any).invoke('download-file', fileUrl);
       //console.log('result', result);
+      
+      // 移除进度监听器
+      (window.ipcRenderer as any).off('download-progress', progressHandler);
+      
       if (result.success) {
-        // 下载成功，弹出完成提醒
-        alert(`文件已下载到桌面: ${result.filePath}`);
+        // 下载成功，不显示 alert，让前端处理
+        console.log(`文件已下载到桌面: ${result.filePath}`);
       } else {
-        alert(`下载失败: ${result.error || '未知错误'}`);
+        // 下载失败，将错误信息传递给前端
+        const errorMsg = result.error || '未知错误';
+        console.error('下载失败:', errorMsg);
+        onError?.(errorMsg);
       }
     } catch (error) {
       console.error('下载失败:', error);
-      alert(`下载失败: ${error}`);
+      // 将错误信息传递给前端
+      onError?.(error instanceof Error ? error.message : String(error));
+      // 确保在错误情况下也移除监听器
+      try {
+        (window.ipcRenderer as any).off('download-progress', progressHandler);
+      } catch (e) {
+        // 忽略移除监听器时的错误
+      }
     }
   } else {
     // 非 Electron 环境，使用 fetch 下载文件
@@ -394,24 +423,66 @@ export const beginHttpDownload = async (fileUrl: string) => {
           }
         }
 
-        // 创建下载链接
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // 获取内容长度用于进度计算
+        const contentLength = response.headers.get('Content-Length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        let loaded = 0;
+
+        // 创建 ReadableStream 来处理下载进度
+        const reader = response.body?.getReader();
+        //console.log('reader', reader);
+        if (reader) {
+          const chunks: Uint8Array[] = [];
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            chunks.push(value);
+            loaded += value.length;
+            console.log('loaded', loaded);
+            
+            // 更新进度
+            if (total > 0 && onProgress) {
+              const percent = Math.round((loaded / total) * 100);
+              onProgress(percent);
+            }
+          }
+          
+          // 合并所有 chunks
+          const blob = new Blob(chunks);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          // 回退到原始方法
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
       } else {
         const errorData = await response.json();
-        alert(`下载失败: ${errorData.error || '未知错误'}`);
+        const errorMsg = errorData.error || '未知错误';
+        console.error('下载失败:', errorMsg);
+        onError?.(errorMsg);
       }
     } catch (error) {
       console.error('下载失败:', error);
-      alert(`下载失败: ${error}`);
+      onError?.(error instanceof Error ? error.message : String(error));
     }
   }
 }
