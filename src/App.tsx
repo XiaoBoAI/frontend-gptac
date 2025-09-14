@@ -26,6 +26,7 @@ import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
 import { useAvatar } from './components/AvatarContext';
 import ProgressBar from './components/ProgressBar';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -504,87 +505,89 @@ function App() {
   }
 
   return (
-    <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
-      <Sidebar
-        onSelectSessionType={handleSessionTypeChange}
-        currentSessionType={currentSessionType}
-        AdvancedSessionRecords={sessionRecords}
-        onHistorySelect={handleHistorySelect}
-        currentSessionId={currentSessionId}
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        onDeleteHistory={handleDeleteHistory}
-        onSaveSession={handleSaveSession}
-        setCurrentModule={setCurrentModule}
-        setSpecialKwargs={setSpecialKwargs}
-        setPluginKwargs={setPluginKwargs}
-        specialKwargs={specialKwargs}
-        isStreaming={isStreaming}
-        isWaiting={isWaiting}
-        setMainInput={setMainInput}
-      />
-      <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
-        {/* 顶部HeaderBar */}
-        <HeaderBar />
-        {/* 内容区 */}
-        <MainContent
+    <ThemeProvider>
+      <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
+        <Sidebar
+          onSelectSessionType={handleSessionTypeChange}
           currentSessionType={currentSessionType}
-          chatbot={chatbot}
-          isStreaming={isStreaming} // 传递流式状态
-          isWaiting={isWaiting} // 传递等待状态
+          AdvancedSessionRecords={sessionRecords}
+          onHistorySelect={handleHistorySelect}
+          currentSessionId={currentSessionId}
+          collapsed={sidebarCollapsed}
+          onCollapse={setSidebarCollapsed}
+          onDeleteHistory={handleDeleteHistory}
+          onSaveSession={handleSaveSession}
+          setCurrentModule={setCurrentModule}
           setSpecialKwargs={setSpecialKwargs}
-          onDownload={downloadWithProgress}
-        />
-        <InputArea
-          value={MainInput}
-          onChange={handleInputChange}
-          onSend={() => handleSendMessage()}
-          onClear={handleClear}
-          onStopStreaming={handleForceStop}
-          onFileUpload={onFileUpload}
-          currentModule={currentModule}
-          isEmpty={chatbot.length === 0}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
+          setPluginKwargs={setPluginKwargs}
+          specialKwargs={specialKwargs}
           isStreaming={isStreaming}
-          // 传递模型参数
-          topP={topP}
-          setTopP={setTopP}
-          temperature={temperature}
-          setTemperature={setTemperature}
-          maxLength={maxLength}
-          setMaxLength={setMaxLength}
-          systemPrompt={systemPrompt}
-          setSystemPrompt={setSystemPrompt}
+          isWaiting={isWaiting}
+          setMainInput={setMainInput}
         />
-        {/* <Button onClick={test_function_01}> 测试获取插件json打印到console </Button> */}
-        {/* <Button onClick={test_function_02}> 测试插件调用 </Button> */}
+        <div className="flex flex-col h-full flex-1 relative bg-white dark:bg-gray-800 overflow-hidden">
+          {/* 顶部HeaderBar */}
+          <HeaderBar />
+          {/* 内容区 */}
+          <MainContent
+            currentSessionType={currentSessionType}
+            chatbot={chatbot}
+            isStreaming={isStreaming} // 传递流式状态
+            isWaiting={isWaiting} // 传递等待状态
+            setSpecialKwargs={setSpecialKwargs}
+            onDownload={downloadWithProgress}
+          />
+          <InputArea
+            value={MainInput}
+            onChange={handleInputChange}
+            onSend={() => handleSendMessage()}
+            onClear={handleClear}
+            onStopStreaming={handleForceStop}
+            onFileUpload={onFileUpload}
+            currentModule={currentModule}
+            isEmpty={chatbot.length === 0}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            isStreaming={isStreaming}
+            // 传递模型参数
+            topP={topP}
+            setTopP={setTopP}
+            temperature={temperature}
+            setTemperature={setTemperature}
+            maxLength={maxLength}
+            setMaxLength={setMaxLength}
+            systemPrompt={systemPrompt}
+            setSystemPrompt={setSystemPrompt}
+          />
+          {/* <Button onClick={test_function_01}> 测试获取插件json打印到console </Button> */}
+          {/* <Button onClick={test_function_02}> 测试插件调用 </Button> */}
+        </div>
+        
+        {/* 上传进度条 */}
+        <ProgressBar
+          visible={showUploadProgress}
+          percent={uploadProgress}
+          title="文件上传中"
+          description={`正在上传: ${uploadFileName}`}
+          onCancel={() => {
+            setShowUploadProgress(false);
+            setUploadProgress(0);
+          }}
+        />
+        
+        {/* 下载进度条 */}
+        <ProgressBar
+          visible={showDownloadProgress}
+          percent={downloadProgress}
+          title="文件下载中"
+          description={`正在下载: ${downloadFileName}`}
+          onCancel={() => {
+            setShowDownloadProgress(false);
+            setDownloadProgress(0);
+          }}
+        />
       </div>
-      
-      {/* 上传进度条 */}
-      <ProgressBar
-        visible={showUploadProgress}
-        percent={uploadProgress}
-        title="文件上传中"
-        description={`正在上传: ${uploadFileName}`}
-        onCancel={() => {
-          setShowUploadProgress(false);
-          setUploadProgress(0);
-        }}
-      />
-      
-      {/* 下载进度条 */}
-      <ProgressBar
-        visible={showDownloadProgress}
-        percent={downloadProgress}
-        title="文件下载中"
-        description={`正在下载: ${downloadFileName}`}
-        onCancel={() => {
-          setShowDownloadProgress(false);
-          setDownloadProgress(0);
-        }}
-      />
-    </div>
+    </ThemeProvider>
   );
 }
 

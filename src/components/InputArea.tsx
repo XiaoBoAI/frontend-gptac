@@ -3,6 +3,7 @@ import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutli
 import ModelSettings from './ModelSettings';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/lib/interface';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { TextArea } = Input;
 
@@ -75,10 +76,10 @@ const modulePlaceholders: Record<string, string> = {
 };
 
 // 自定义停止按钮图标
-const StopCircleIcon: React.FC<{size?:number}> = ({size=22}) => (
+const StopCircleIcon: React.FC<{size?:number, theme?:string}> = ({size=22, theme='light'}) => (
   <svg width={size} height={size} viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="11" cy="11" r="10" stroke="#222" strokeWidth="2" fill="none"/>
-    <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill="#222" />
+    <circle cx="11" cy="11" r="10" stroke={theme === 'dark' ? '#fff' : '#222'} strokeWidth="2" fill="none"/>
+    <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill={theme === 'dark' ? '#fff' : '#222'} />
   </svg>
 );
 
@@ -105,6 +106,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   systemPrompt = 'Serve me as a writing and programming assistant. Answer me in Chinese by default.',
   setSystemPrompt,
 }) => {
+  const { theme } = useTheme();
   const inputRef = useRef(null);
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
 
@@ -260,9 +262,9 @@ const InputArea: React.FC<InputAreaProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 2px 8px #e0e0e0',
+    boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px #e0e0e0',
     border: 'none',
-    background: isStreaming ? '#ff4d4f' : (sendDisabled ? '#f3f3f3' : '#1677ff'),
+    background: isStreaming ? '#ff4d4f' : (sendDisabled ? (theme === 'dark' ? '#4b5563' : '#f3f3f3') : '#1677ff'),
     color: '#fff',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
@@ -271,12 +273,18 @@ const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: isEmpty ? 60 : 0 }}>
+    <div style={{ 
+      width: '100%', 
+      display: 'flex', 
+      justifyContent: 'center', 
+      marginTop: isEmpty ? 60 : 0,
+      backgroundColor: theme === 'dark' ? '#1f2937' : 'transparent'
+    }}>
       <div
         style={{
-          background: '#fff',
+          background: theme === 'dark' ? '#1f2937' : '#fff',
           borderRadius: 24,
-          boxShadow: '0 2px 16px #eee',
+          boxShadow: theme === 'dark' ? '0 2px 16px rgba(0,0,0,0.3)' : '0 2px 16px #eee',
           padding: 0,
           width: '80%',
           maxWidth: '900px',
@@ -284,7 +292,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          border: '2px solid #f3f3f3',
+          border: theme === 'dark' ? '2px solid #374151' : '2px solid #f3f3f3',
           marginBottom: 15,
           marginLeft: 10,
           marginRight: 10,
@@ -299,19 +307,19 @@ const InputArea: React.FC<InputAreaProps> = ({
               position: 'absolute',
               right: 0,
               transform: 'translateY(-100%)',
-              background: '#f0f8ff',
-              border: '1px solid #d0e7ff',
+              background: theme === 'dark' ? '#1e3a8a' : '#f0f8ff',
+              border: theme === 'dark' ? '1px solid #1e40af' : '1px solid #d0e7ff',
               borderRadius: 12,
               padding: '8px 12px',
               fontSize: 12,
-              color: '#1677ff',
+              color: theme === 'dark' ? '#93c5fd' : '#1677ff',
               zIndex: 20,
               maxWidth: 500,
               wordWrap: 'break-word',
-              boxShadow: '0 2px 8px rgba(22, 119, 255, 0.1)',
+              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(22, 119, 255, 0.1)',
             }}
           >
-            <div style={{ marginBottom: 6, fontSize: 11, color: '#666' }}>
+            <div style={{ marginBottom: 6, fontSize: 11, color: theme === 'dark' ? '#9ca3af' : '#666' }}>
               💡 AI补全建议 (Tab或Ctrl+数字键应用)
             </div>
             {predictions.slice(0, 5).map((prediction, index) => (
@@ -320,18 +328,24 @@ const InputArea: React.FC<InputAreaProps> = ({
                 style={{
                   marginBottom: index === predictions.length - 1 ? 0 : 4,
                   padding: '4px 8px',
-                  background: index === 0 ? '#e6f3ff' : '#f8f9fa',
+                  background: index === 0 
+                    ? (theme === 'dark' ? '#1e40af' : '#e6f3ff') 
+                    : (theme === 'dark' ? '#374151' : '#f8f9fa'),
                   borderRadius: 6,
                   cursor: 'pointer',
-                  border: index === 0 ? '1px solid #bae7ff' : '1px solid #e9ecef',
+                  border: index === 0 
+                    ? (theme === 'dark' ? '1px solid #1d4ed8' : '1px solid #bae7ff') 
+                    : (theme === 'dark' ? '1px solid #4b5563' : '1px solid #e9ecef'),
                   transition: 'all 0.2s',
                 }}
                 onClick={() => applyPrediction(index)}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#e6f3ff';
+                  e.currentTarget.style.background = theme === 'dark' ? '#1e40af' : '#e6f3ff';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = index === 0 ? '#e6f3ff' : '#f8f9fa';
+                  e.currentTarget.style.background = index === 0 
+                    ? (theme === 'dark' ? '#1e40af' : '#e6f3ff') 
+                    : (theme === 'dark' ? '#374151' : '#f8f9fa');
                 }}
               >
                 <span style={{ fontWeight: 'bold', marginRight: 6 }}>
@@ -360,12 +374,13 @@ const InputArea: React.FC<InputAreaProps> = ({
               padding: '24px 80px 24px 24px', // 固定右边距，确保按钮不遮挡文字
               borderRadius: 24,
               resize: 'none',
-              color: '#222',
+              color: theme === 'dark' ? '#e5e7eb' : '#222',
               overflowY: 'auto',
               maxWidth: '100%',
               minHeight: 80,
               lineHeight: 1.5,
             }}
+            className={theme === 'dark' ? 'dark-placeholder' : 'light-placeholder'}
             onPressEnter={e => { 
               // 检查是否正在使用输入法输入
               if (e.nativeEvent.isComposing) {
@@ -389,7 +404,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                 shape="circle"
                 icon={
                 isStreaming
-                    ? <StopCircleIcon size={Math.max(18, Math.min(22, window.innerWidth * 0.02))} />
+                    ? <StopCircleIcon size={Math.max(18, Math.min(22, window.innerWidth * 0.02))} theme={theme} />
                     : <SendOutlined rotate={-90} style={{fontSize: Math.max(14, Math.min(16, window.innerWidth * 0.015))}} />
                 }
                 size="small"
@@ -425,7 +440,9 @@ const InputArea: React.FC<InputAreaProps> = ({
                 borderWidth: 1, 
                 fontWeight: 500, 
                 fontSize: 'clamp(12px, 1.2vw, 14px)', 
-                background: '#fff',
+                background: theme === 'dark' ? '#374151' : '#fff',
+                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                color: theme === 'dark' ? '#e5e7eb' : '#374151',
                 height: 'clamp(28px, 3.5vw, 36px)',
                 padding: `0 clamp(12px, 1.5vw, 16px)`,
                 minWidth: 'clamp(80px, 10vw, 120px)',
@@ -472,7 +489,9 @@ const InputArea: React.FC<InputAreaProps> = ({
                 borderWidth: 1, 
                 fontWeight: 500, 
                 fontSize: 'clamp(12px, 1.2vw, 14px)', 
-                background: '#fff',
+                background: theme === 'dark' ? '#374151' : '#fff',
+                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                color: theme === 'dark' ? '#e5e7eb' : '#374151',
                 height: 'clamp(28px, 3.5vw, 36px)',
                 padding: `0 clamp(12px, 1.5vw, 16px)`,
                 minWidth: 'clamp(70px, 8vw, 100px)',

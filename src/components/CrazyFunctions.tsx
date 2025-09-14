@@ -2,6 +2,7 @@ import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Collapse, Spin,
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   BookOutlined,
   MessageOutlined,
@@ -109,6 +110,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   isWaiting = false,
   setMainInput,
 }) => {
+  const { theme } = useTheme();
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [functionPlugins, setFunctionPlugins] = useState<FunctionPlugin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -505,9 +507,11 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   // 如果正在加载，显示加载状态
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className={`flex items-center justify-center p-8 h-full ${
+        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+      }`}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-        <span className="ml-2 text-gray-500">加载函数插件中...</span>
+        <span className={`ml-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>加载函数插件中...</span>
       </div>
     );
   }
@@ -515,7 +519,9 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   // 如果没有数据，显示空状态
   if (functionPlugins.length === 0) {
     return (
-      <div className="text-center p-8 text-gray-400">
+      <div className={`text-center p-8 h-full ${
+        theme === 'dark' ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
+      }`}>
         <ApiOutlined className="text-2xl mb-2" />
         <div>暂无函数插件</div>
       </div>
@@ -523,12 +529,19 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto p-2 crazy-functions-container" style={{ height: '100%' }}>
+    <div className={`flex-1 overflow-auto p-2 crazy-functions-container ${
+      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+    }`} style={{ 
+      height: '100%'
+    }}>
       <Collapse 
         defaultActiveKey={[]} 
         ghost 
         size="small"
         className="crazy-functions-collapse"
+        style={{
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+        }}
       >
         {Object.entries(groupedPlugins).map(([groupName, plugins]) => (
           <Panel
@@ -564,18 +577,28 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                   key={`${groupName}-${index}`}
                   className={`p-2 rounded cursor-pointer transition-all duration-200 group plugin-item ${
                     selectedPlugin === plugin.name
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'hover:bg-white hover:shadow-sm'
+                      ? theme === 'dark' 
+                        ? 'bg-blue-900/30 border border-blue-700/50' 
+                        : 'bg-blue-50 border border-blue-200'
+                      : theme === 'dark'
+                        ? 'hover:bg-gray-800/50 hover:shadow-sm'
+                        : 'hover:bg-white hover:shadow-sm'
                   }`}
                   onClick={() => handlePluginClick(plugin)}
                   style={{
-                    border: selectedPlugin === plugin.name ? '1px solid #d1d5db' : '1px solid transparent'
+                    border: selectedPlugin === plugin.name 
+                      ? theme === 'dark' 
+                        ? '1px solid #374151' 
+                        : '1px solid #d1d5db' 
+                      : '1px solid transparent'
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center">
-                        <span className="font-medium text-sm text-gray-800 truncate plugin-name">
+                        <span className={`font-medium text-sm truncate plugin-name ${
+                          theme === 'dark' ? 'text-white' : 'text-gray-800'
+                        }`}>
                           {plugin.name}
                         </span>
                         {plugin.important && (
@@ -658,15 +681,30 @@ const styles = `
     margin-right: 8px !important;
   }
   
+  /* 暗色主题下箭头为白色 */
+  .dark .crazy-functions-collapse .ant-collapse-arrow {
+    color: white !important;
+  }
+  
   .crazy-functions-collapse .ant-collapse-header:hover .ant-collapse-arrow {
     opacity: 0.9 !important;
     transform: scale(1.05) !important;
+  }
+  
+  /* 暗色主题下悬浮时箭头保持白色 */
+  .dark .crazy-functions-collapse .ant-collapse-header:hover .ant-collapse-arrow {
+    color: white !important;
   }
   
   /* 展开时的箭头旋转效果 */
   .crazy-functions-collapse .ant-collapse-item-active .ant-collapse-arrow {
     transform: rotate(90deg) !important;
     opacity: 1 !important;
+  }
+  
+  /* 暗色主题下展开时箭头保持白色 */
+  .dark .crazy-functions-collapse .ant-collapse-item-active .ant-collapse-arrow {
+    color: white !important;
   }
   
   /* 箭头图标优化 */

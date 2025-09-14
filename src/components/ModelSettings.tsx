@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Modal, Slider, Input, Space, Typography, Divider } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -26,6 +27,7 @@ const ModelSettings: React.FC<ModelSettingsProps> = ({
   systemPrompt,
   setSystemPrompt,
 }) => {
+  const { theme } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [tempTopP, setTempTopP] = useState(topP);
   const [tempTemperature, setTempTemperature] = useState(temperature);
@@ -68,8 +70,9 @@ const ModelSettings: React.FC<ModelSettingsProps> = ({
           borderWidth: 1, 
           fontWeight: 500, 
           fontSize: 'clamp(12px, 1.2vw, 14px)',
-          background: '#fff',
-          //color: '#1677ff',
+          background: theme === 'dark' ? '#374151' : '#fff',
+          borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+          color: theme === 'dark' ? '#e5e7eb' : '#374151',
           height: 'clamp(28px, 3.5vw, 36px)',
           padding: `0 clamp(12px, 1.5vw, 16px)`,
           minWidth: 'clamp(70px, 8vw, 100px)',
@@ -179,9 +182,11 @@ const ModelSettings: React.FC<ModelSettingsProps> = ({
               rows={4}
               placeholder="输入系统提示词，用于指导AI的行为..."
               style={{
-                border: '1px solid #d9d9d9',
+                border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #d9d9d9',
                 borderRadius: 6,
                 fontSize: 14,
+                backgroundColor: theme === 'dark' ? '#374151' : '#fff',
+                color: theme === 'dark' ? '#e5e7eb' : '#000',
               }}
             />
             <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>

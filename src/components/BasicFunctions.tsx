@@ -2,6 +2,7 @@ import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Spin, message }
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   EditOutlined,
   TranslationOutlined,
@@ -39,6 +40,7 @@ const BasicFunctions: React.FC<any> = ({
   setSpecialKwargs,
   specialKwargs,
 }) => {
+  const { theme } = useTheme();
   const [selectedBasicFunction, setSelectedBasicFunction] = useState<string | null>(null);
   const [basicFunctionItems, setBasicFunctionItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,9 +107,11 @@ const BasicFunctions: React.FC<any> = ({
   // 如果正在加载，显示加载状态
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className={`flex items-center justify-center p-8 h-full ${
+        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+      }`}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-        <span className="ml-2 text-gray-500">加载基础功能中...</span>
+        <span className={`ml-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>加载基础功能中...</span>
       </div>
     );
   }
@@ -115,7 +119,9 @@ const BasicFunctions: React.FC<any> = ({
   // 如果没有数据，显示空状态
   if (basicFunctionItems.length === 0) {
     return (
-      <div className="text-center p-8 text-gray-400">
+      <div className={`text-center p-8 h-full ${
+        theme === 'dark' ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
+      }`}>
         <ApiOutlined className="text-2xl mb-2" />
         <div>暂无基础功能</div>
       </div>
@@ -123,18 +129,25 @@ const BasicFunctions: React.FC<any> = ({
   }
 
   return (
-    <div className="h-full overflow-auto p-2 basic-functions-container">
+    <div className={`h-full overflow-auto p-2 basic-functions-container ${
+      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+    }`}>
       <Menu
         mode="inline"
         selectedKeys={selectedBasicFunction ? [selectedBasicFunction] : []}
-        style={{ borderRight: 0, flex: 'none' }}
-        className="border-b border-gray-100"
+        style={{ 
+          borderRight: 0, 
+          flex: 'none',
+          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+        }}
+        className={`border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}
+        theme={theme}
         items={basicFunctionItems.map(item => ({
           key: item.key,
           label: (
             <div className="flex items-center">
-              <span className="mr-2 text-gray-600">{item.icon}</span>
-              {item.label}
+              <span className={`mr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{item.icon}</span>
+              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{item.label}</span>
             </div>
           ),
         }))}

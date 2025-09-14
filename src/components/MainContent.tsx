@@ -13,6 +13,7 @@ import 'github-markdown-css';
 import './MainContent.css';
 import { useAvatar } from './AvatarContext';
 import { beginHttpDownload } from '../Com';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { Text } = Typography;
 
@@ -23,6 +24,7 @@ interface ChatMessage {
 
 // 代码块组件，包含高亮和复制功能
 const CodeBlock: React.FC<{ children: string; className?: string }> = ({ children, className }) => {
+  const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
   
   // 从className中提取语言类型
@@ -96,7 +98,11 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
       {/* 复制按钮 */}
               <button
           onClick={handleCopy}
-          className="absolute top-3 right-3 z-10 p-2 rounded-md bg-gray-700 text-gray-300 opacity-100 transition-all duration-200 hover:bg-gray-600 hover:scale-105"
+          className={`absolute top-3 right-3 z-10 p-2 rounded-md opacity-100 transition-all duration-200 hover:scale-105 ${
+            theme === 'dark' 
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+          }`}
           title="复制代码"
         >
         {copied ? (
@@ -116,7 +122,7 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
       {/* 代码高亮 */}
       <SyntaxHighlighter
         language={language === 'text' ? undefined : language}
-        style={tomorrow}
+        style={theme === 'dark' ? tomorrow : tomorrow}
         customStyle={{
           margin: 0,
           borderRadius: '12px',
@@ -125,14 +131,14 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
           padding: '20px',
           //paddingTop: language !== 'text' ? '35px' : '20px',
           paddingRight: '50px',
-          backgroundColor: '#1a202c',
-          border: 'none',
+          backgroundColor: theme === 'dark' ? '#1a202c' : '#f8f9fa',
+          border: theme === 'dark' ? 'none' : '1px solid #e9ecef',
           boxShadow: 'none'
         }}
         showLineNumbers={language !== 'text'}
         wrapLines={true}
         lineNumberStyle={{
-          color: '#718096',
+          color: theme === 'dark' ? '#718096' : '#6c757d',
           fontSize: '12px',
           paddingRight: '16px',
           minWidth: '2.5em'
@@ -163,6 +169,7 @@ const MainContent: React.FC<MainContentProps> = ({
   setSpecialKwargs,
   onDownload,
 }) => {
+  const { theme } = useTheme();
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef(null);
@@ -312,16 +319,24 @@ const MainContent: React.FC<MainContentProps> = ({
 
   if (isEmpty) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
+      <div className={`flex-1 flex flex-col items-center justify-center px-8 ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}>
         <div className="text-center max-w-2xl">
           <div className="text-6xl mb-6">{getModuleIcon(currentSessionType)}</div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          <h1 className={`text-3xl font-bold mb-4 ${
+            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+          }`}>
             {getModuleTitle(currentSessionType)}
           </h1>
-          <p className="text-lg text-gray-600 leading-relaxed">
+          <p className={`text-lg leading-relaxed ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             {getModuleDescription(currentSessionType)}
           </p>
-          <div className="mt-8 text-sm text-gray-500">
+          <div className={`mt-8 text-sm ${
+            theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
             在下方输入框中开始您的对话...
           </div>
         </div>
@@ -331,15 +346,17 @@ const MainContent: React.FC<MainContentProps> = ({
 
   return (
     <div 
-      className="flex-1 overflow-auto bg-white" 
+      className={`flex-1 overflow-auto ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: '#d1d5db transparent',
+        scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
         // WebKit滚动条样式
         '--scrollbar-width': '6px',
         '--scrollbar-track': 'transparent',
-        '--scrollbar-thumb': '#d1d5db',
-        '--scrollbar-thumb-hover': '#9ca3af',
+        '--scrollbar-thumb': theme === 'dark' ? '#4b5563' : '#d1d5db',
+        '--scrollbar-thumb-hover': theme === 'dark' ? '#6b7280' : '#9ca3af',
         // 优化滚动性能
         scrollBehavior: 'auto',
         willChange: 'scroll-position'
@@ -350,7 +367,7 @@ const MainContent: React.FC<MainContentProps> = ({
         style={{
           // 内联样式定义滚动条
           scrollbarWidth: 'thin',
-          scrollbarColor: '#d1d5db transparent',
+          scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
           // 确保内容不会因为滚动而重排
           contain: 'layout style paint'
         }}
@@ -389,8 +406,12 @@ const MainContent: React.FC<MainContentProps> = ({
                 <div
                   className={`inline-block px-6 py-4 rounded-2xl max-w-full ${
                     message.sender === 'user'
-                      ? 'bg-gray-200 text-gray-800'
-                      : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200'
+                      ? (theme === 'dark' 
+                          ? 'bg-gray-700 text-gray-200' 
+                          : 'bg-gray-200 text-gray-800')
+                      : (theme === 'dark' 
+                          ? 'bg-gray-800 text-gray-200 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-700' 
+                          : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200')
                   }`}
                   style={{
                     wordBreak: 'break-word',
@@ -429,7 +450,11 @@ const MainContent: React.FC<MainContentProps> = ({
                             const isInline = !className;
                             if (isInline) {
                               return (
-                                <code className="bg-gray-200 px-1 py-0.5 rounded text-sm text-gray-800 font-mono">
+                                <code className={`px-1 py-0.5 rounded text-sm font-mono ${
+                                  theme === 'dark' 
+                                    ? 'bg-gray-700 text-gray-200' 
+                                    : 'bg-gray-200 text-gray-800'
+                                }`}>
                                   {children}
                                 </code>
                               );
@@ -440,29 +465,51 @@ const MainContent: React.FC<MainContentProps> = ({
                           ul: ({ children }) => <ul className="list-disc list-outside mb-1 ml-4 space-y-0.5">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-outside mb-1 ml-4 space-y-0.5">{children}</ol>,
                           li: ({ children }) => <li className="mb-0.5 leading-relaxed pl-1">{children}</li>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-1 leading-tight">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-1 leading-tight">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-1 leading-tight">{children}</h3>,
+                          h1: ({ children }) => <h1 className={`text-xl font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h1>,
+                          h2: ({ children }) => <h2 className={`text-lg font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h2>,
+                          h3: ({ children }) => <h3 className={`text-base font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h3>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-1">
+                            <blockquote className={`border-l-4 pl-4 italic mb-1 ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 text-gray-300' 
+                                : 'border-gray-300 text-gray-700'
+                            }`}>
                               {children}
                             </blockquote>
                           ),
                           hr: () => (
-                            <hr className="my-2 border-gray-300" style={{ border: 'none', borderTop: '1px solid #e5e7eb', height: '1px' }} />
+                            <hr className={`my-2 ${
+                              theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                            }`} style={{ border: 'none', borderTop: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, height: '1px' }} />
                           ),
                           table: ({ children }) => (
                             <div className="overflow-x-auto mb-3">
-                              <table className="min-w-full border border-gray-300">{children}</table>
+                              <table className={`min-w-full border ${
+                                theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                              }`}>{children}</table>
                             </div>
                           ),
                           th: ({ children }) => (
-                            <th className="border border-gray-300 px-3 py-2 bg-gray-50 font-semibold">
+                            <th className={`border px-3 py-2 font-semibold ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 bg-gray-700 text-gray-200' 
+                                : 'border-gray-300 bg-gray-50 text-gray-800'
+                            }`}>
                               {children}
                             </th>
                           ),
                           td: ({ children }) => (
-                            <td className="border border-gray-300 px-3 py-2">{children}</td>
+                            <td className={`border px-3 py-2 ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 text-gray-200' 
+                                : 'border-gray-300 text-gray-800'
+                            }`}>{children}</td>
                           ),
                           a: ({ children, href }) => {
                             // 检查是否为下载链接（通过文件扩展名或特殊标识）
@@ -503,7 +550,7 @@ const MainContent: React.FC<MainContentProps> = ({
                                 href={href} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="text-blue-500 hover:underline"
+                                className="text-blue-500 dark:text-blue-400 hover:underline"
                               >
                                 {children}
                               </a>
@@ -548,7 +595,11 @@ const MainContent: React.FC<MainContentProps> = ({
                           antdMessage.error('复制失败');
                         });
                       }}
-                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
+                      className={`flex items-center text-xs transition-colors bg-transparent border-none shadow-none ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-gray-300' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
                       style={{ padding: 0, outline: 'none' }}
                       title="复制"
                     >
@@ -576,7 +627,11 @@ const MainContent: React.FC<MainContentProps> = ({
                           antdMessage.error('复制失败');
                         });
                       }}
-                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
+                      className={`flex items-center text-xs transition-colors bg-transparent border-none shadow-none ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-gray-300' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
                       style={{ padding: 0, outline: 'none' }}
                       title="复制"
                     >
@@ -612,10 +667,14 @@ const MainContent: React.FC<MainContentProps> = ({
 
               {/* 等待动画 */}
               <div className="flex-1 text-left">
-                <div className="inline-block px-6 py-4 rounded-2xl bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200">
+                <div className={`inline-block px-6 py-4 rounded-2xl border-l-4 border-r-4 border-b-4 border-t-8 ${
+                  theme === 'dark' 
+                    ? 'bg-gray-800 text-gray-200 border-blue-700' 
+                    : 'bg-white text-gray-800 border-blue-200'
+                }`}>
                   <div className="flex items-center space-x-2">
                     <LoadingOutlined style={{ fontSize: 16, color: '#52c41a' }} />
-                    <span className="text-gray-600">正在回复中...</span>
+                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>正在回复中...</span>
                   </div>
                 </div>
               </div>
