@@ -27,7 +27,8 @@ import {
   UserOutlined,
   InfoCircleOutlined,
   DeleteOutlined,
-  SaveOutlined
+  SaveOutlined,
+  GlobalOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -42,7 +43,7 @@ const navigationSections = [
     items: [
       { key: 'chat', label: 'AI对话', icon: <RobotOutlined /> },
       { key: 'academic_chat', label: '学术对话', icon: <BookOutlined /> },
-      { key: 'paper_qa', label: '快速论文解读', icon: <QuestionCircleOutlined /> },
+      { key: 'crazy_functions.Internet_GPT->连接网络回答问题', label: '联网搜索并回答', icon: <GlobalOutlined /> },
     ]
   },
   {

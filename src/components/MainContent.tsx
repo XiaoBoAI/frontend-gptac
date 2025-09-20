@@ -270,7 +270,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const titles = {
       'ai_chat': 'AI对话',
       'academic_chat': '学术对话',
-      'paper_qa': '快速论文解读',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '联网搜索并回答',
       'paper_write': '论文写作',
       'paper_translate': '论文翻译',
       'document_analysis': '文档分析',
@@ -286,8 +286,8 @@ const MainContent: React.FC<MainContentProps> = ({
   const getModuleDescription = (module: string) => {
     const descriptions = {
       'ai_chat': '与AI进行智能对话，获取各种问题的答案',
-      'academic_chat': '专注于学术领域的深度对话和讨论',
-      'paper_qa': '针对论文进行快速解读，帮助理解学术文献',
+      'academic_chat': '专注于学术领域的深度对话和讨论\n例如：寻找2025年强化学习相关论文，并进行总结',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '连接网络搜索最新信息，提供实时准确的答案',
       'paper_write': '辅助论文写作，提供写作建议和内容生成',
       'paper_translate': '学术论文翻译服务，支持多语言互译',
       'document_analysis': '智能分析文档内容，提取关键信息',
@@ -304,7 +304,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const icons = {
       'ai_chat': '🤖',
       'academic_chat': '🎓',
-      'paper_qa': '❓',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '🌐',
       'paper_write': '✍️',
       'paper_translate': '��',
       'document_analysis': '📄',
@@ -329,7 +329,7 @@ const MainContent: React.FC<MainContentProps> = ({
           }`}>
             {getModuleTitle(currentSessionType)}
           </h1>
-          <p className={`text-lg leading-relaxed ${
+          <p className={`text-lg leading-relaxed whitespace-pre-line ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>
             {getModuleDescription(currentSessionType)}

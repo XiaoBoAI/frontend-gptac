@@ -380,7 +380,7 @@ const InputArea: React.FC<InputAreaProps> = ({
               minHeight: 80,
               lineHeight: 1.5,
             }}
-            className={theme === 'dark' ? 'dark-placeholder' : 'light-placeholder'}
+            className={`input-area-textarea ${theme === 'dark' ? 'dark-placeholder' : 'light-placeholder'}`}
             onPressEnter={e => { 
               // 检查是否正在使用输入法输入
               if (e.nativeEvent.isComposing) {
