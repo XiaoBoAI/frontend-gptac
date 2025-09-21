@@ -26,6 +26,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       width={400}
       centered
       onCancel={onCancel}
+      zIndex={2000}
     >
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
         <Progress

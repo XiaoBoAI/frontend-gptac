@@ -110,6 +110,8 @@ interface SidebarProps {
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
   setMainInput: any,
+  handleSendMessage: () => void;
+  onFileUpload?: (options: any) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -129,6 +131,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   isStreaming = false,
   isWaiting = false,
   setMainInput,
+  handleSendMessage,
+  onFileUpload,
 }) => {
   const { theme } = useTheme();
   const [activeSection, setActiveSection] = useState('chat');
@@ -317,6 +321,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 isStreaming={isStreaming}
                 isWaiting={isWaiting}
                 setMainInput={setMainInput}
+                handleSendMessage={handleSendMessage}
+                onFileUpload={onFileUpload}
               />
             ) : (
               <Menu

@@ -1,4 +1,4 @@
-import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Collapse, Spin, message, Modal, Input, Select, Form } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Collapse, Spin, message, Modal, Input, Select, Form, Upload } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
@@ -11,7 +11,9 @@ import {
   ApiOutlined,
   LoadingOutlined,
   SettingOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
+import type { UploadRequestOption } from 'rc-upload/lib/interface';
 
 const { Panel } = Collapse;
 const { TextArea } = Input;
@@ -97,6 +99,8 @@ interface CrazyFunctionsProps {
   isStreaming?: boolean;
   isWaiting?: boolean;
   setMainInput: (input: string) => void;
+  handleSendMessage: () => void;
+  onFileUpload?: (options: UploadRequestOption) => void;
 }
 
 const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
@@ -109,6 +113,8 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   isStreaming = false,
   isWaiting = false,
   setMainInput,
+  handleSendMessage,
+  onFileUpload,
 }) => {
   const { theme } = useTheme();
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
@@ -119,9 +125,44 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   // 菜单相关状态
   const [isSimpleMenuVisible, setIsSimpleMenuVisible] = useState(false);
   const [isComplexMenuVisible, setIsComplexMenuVisible] = useState(false);
+  const [isNoMenuVisible, setIsNoMenuVisible] = useState(false);
   const [currentPlugin, setCurrentPlugin] = useState<FunctionPlugin | null>(null);
   const [simpleMenuForm] = Form.useForm();
   const [complexMenuForm] = Form.useForm();
+  const [noMenuForm] = Form.useForm();
+
+
+
+  useEffect(() => {
+    console.log('crazy functions specialKwargs', specialKwargs);
+
+    if (specialKwargs.uploaded_file_path && currentPlugin && needsFileUpload(currentPlugin)) {
+      setMainInput(specialKwargs.uploaded_file_path);
+      
+      // 将文件路径赋值给当前插件菜单栏里面的输入框
+      if (currentPlugin.need_simple_menu) {
+        simpleMenuForm.setFieldsValue({ 
+          main_input: specialKwargs.uploaded_file_path,
+          //advanced_arg: specialKwargs.uploaded_file_path 
+        });
+      } else if (currentPlugin.need_complex_menu) {
+        // 为复杂菜单中需要路径的字段设置值
+        const complexValues: any = {};
+        Object.entries(currentPlugin.complex_menu_def || {}).forEach(([key, item]: [string, any]) => {
+          if (item.title?.toLowerCase().includes('路径') || 
+              item.description?.toLowerCase().includes('路径') ||
+              key.toLowerCase().includes('path') ||
+              key.toLowerCase().includes('file')) {
+            complexValues[key] = specialKwargs.uploaded_file_path;
+          }
+        });
+        complexMenuForm.setFieldsValue(complexValues);
+      } else {
+        // 无菜单插件
+        noMenuForm.setFieldsValue({ user_input: specialKwargs.uploaded_file_path });
+      }
+    }
+  }, [specialKwargs,currentPlugin]);
 
 
 //   useEffect(() => {
@@ -184,6 +225,18 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
     fetchCrazyFunctional();
   }, []);
 
+  // 判断插件是否需要文件上传功能
+  const needsFileUpload = (plugin: FunctionPlugin) => {
+    if (!plugin.description) return false;
+    const description = plugin.description.toLowerCase();
+    return description.includes('路径') || 
+           description.includes('文件') ||
+           description.includes('path') ||
+           description.includes('file') ||
+           description.includes('上传') ||
+           description.includes('upload');
+  };
+
   const handlePluginClick = (plugin: FunctionPlugin) => {
     // 如果正在流式回复或等待中，阻止切换
     if (isStreaming || isWaiting) {
@@ -200,14 +253,20 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
     if (plugin.need_simple_menu) {
       // 显示简单菜单
       setIsSimpleMenuVisible(true);
-      // 清空表单，因为提示词现在单独显示
-      simpleMenuForm.resetFields();
+      // 设置表单默认值，如果有上传文件路径则使用文件路径
+      const defaultValues: any = {};
+      if (specialKwargs.uploaded_file_path && needsFileUpload(plugin)) {
+        defaultValues.main_input = specialKwargs.uploaded_file_path;
+        //defaultValues.advanced_arg = specialKwargs.uploaded_file_path;
+      }
+      simpleMenuForm.setFieldsValue(defaultValues);
     } else if (plugin.need_complex_menu) {
       // 显示复杂菜单
       setIsComplexMenuVisible(true);
       // 设置表单默认值
       if (plugin.complex_menu_def) {
         const defaultValues: any = {};
+        
         Object.entries(plugin.complex_menu_def).forEach(([key, item]: [string, any]) => {
           let defaultValue = item.default_value || item.default_val || '';
           
@@ -225,8 +284,14 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
         complexMenuForm.setFieldsValue(defaultValues);
       }
     } else {
-      // 无菜单插件，直接执行
-      executePlugin(plugin, {});
+      // 无菜单插件，显示简单输入弹窗
+      setIsNoMenuVisible(true);
+      // 设置表单默认值，如果有上传文件路径则使用文件路径
+      const defaultValues: any = {};
+      if (specialKwargs.uploaded_file_path && needsFileUpload(plugin)) {
+        defaultValues.user_input = specialKwargs.uploaded_file_path;
+      }
+      noMenuForm.setFieldsValue(defaultValues);
     }
   };
 
@@ -257,18 +322,18 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
     // handleSendMessage();
 
     
-    console.log('plugin', plugin);
-    console.log('menuData', menuData);
+    // console.log('plugin', plugin);
+    // console.log('menuData', menuData);
 
-    // 检查插件描述是否提到路径参数，且specialKwargs中存在路径
-    if (plugin.description && 
-      (plugin.description.toLowerCase().includes('路径') || 
-       plugin.description.toLowerCase().includes('文件') ||
-       plugin.description.toLowerCase().includes('path') ||
-       plugin.description.toLowerCase().includes('file')) &&
-      specialKwargs.uploaded_file_path) {
-    setMainInput(specialKwargs.uploaded_file_path);
-    }
+    // // 检查插件描述是否提到路径参数，且specialKwargs中存在路径
+    // if (plugin.description && 
+    //   (plugin.description.toLowerCase().includes('路径') || 
+    //    plugin.description.toLowerCase().includes('文件') ||
+    //    plugin.description.toLowerCase().includes('path') ||
+    //    plugin.description.toLowerCase().includes('file')) &&
+    //   specialKwargs.uploaded_file_path) {
+    // setMainInput(specialKwargs.uploaded_file_path);
+    // }
 
     
     if (plugin.need_simple_menu) {
@@ -306,11 +371,21 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   const handleSimpleMenuOk = () => {
     simpleMenuForm.validateFields().then((values) => {
       if (currentPlugin) {
+        // 设置主输入内容
+        const mainInput = values.main_input?.trim() || '';
+        console.log('mainInput', mainInput);
+        if (mainInput) {
+          setMainInput(mainInput);
+        }
+        //console.log('values', values);
+        
         // 用户输入的内容作为 advanced_arg，如果为空则使用空字符串
         const finalValues = {
           advanced_arg: values.advanced_arg?.trim() || ''
         };
         executePlugin(currentPlugin, finalValues);
+        // 直接触发输入框的提交按钮
+        handleSendMessage();
         setIsSimpleMenuVisible(false);
         simpleMenuForm.resetFields();
       }
@@ -321,6 +396,13 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   const handleComplexMenuOk = () => {
     complexMenuForm.validateFields().then((values) => {
       if (currentPlugin) {
+        // 获取第一个输入框的内容并赋值给 setMainInput
+        const firstKey = Object.keys(currentPlugin.complex_menu_def)[0];
+        const firstInputValue = values[firstKey]?.trim() || '';
+        if (firstInputValue) {
+          setMainInput(firstInputValue);
+        }
+        
         // 记录用户输入的值，如果为空则使用默认值
         const finalValues: any = {};
         Object.entries(currentPlugin.complex_menu_def).forEach(([key, item]: [string, any]) => {
@@ -329,8 +411,29 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
           finalValues[key] = userValue || defaultValue;
         });
         executePlugin(currentPlugin, finalValues);
+        // 直接触发输入框的提交按钮
+        handleSendMessage();
         setIsComplexMenuVisible(false);
         complexMenuForm.resetFields();
+      }
+    });
+  };
+
+  // 处理无菜单确认
+  const handleNoMenuOk = () => {
+    noMenuForm.validateFields().then((values) => {
+      if (currentPlugin) {
+        // 将用户输入的内容赋值给setMainInput，如果有上传文件路径则使用文件路径
+        const userInput = values.user_input?.trim() || '';
+        //const finalInput = specialKwargs.uploaded_file_path || userInput;
+        setMainInput(userInput);
+        console.log('userInput', userInput);
+        // 执行插件
+        executePlugin(currentPlugin, {});
+        // 直接触发输入框的提交按钮
+        handleSendMessage();
+        setIsNoMenuVisible(false);
+        noMenuForm.resetFields();
       }
     });
   };
@@ -339,8 +442,10 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   const handleMenuCancel = () => {
     setIsSimpleMenuVisible(false);
     setIsComplexMenuVisible(false);
+    setIsNoMenuVisible(false);
     simpleMenuForm.resetFields();
     complexMenuForm.resetFields();
+    noMenuForm.resetFields();
     setCurrentPlugin(null);
   };
 
@@ -359,7 +464,74 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
         width={600}
       >
         <Form form={simpleMenuForm} layout="vertical">
-          {/* 提示词显示区域 */}
+          {/* 主输入内容提示区域 - 显示插件描述 */}
+          {currentPlugin.description && (
+            <div 
+              style={{
+                background: '#f6f8fa',
+                border: '1px solid #e1e4e8',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                color: '#24292e',
+                fontStyle: 'italic',
+                fontWeight: '500'
+              }}
+            >
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#586069', 
+                marginBottom: '4px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                💡 输入内容提示
+              </div>
+              {currentPlugin.description}
+            </div>
+          )}
+          
+          <Form.Item
+            label="主输入内容"
+            name="main_input"
+            rules={[{ required: false }]}
+          >
+            <TextArea
+              rows={4}
+              placeholder="请输入主要内容"
+              style={{ resize: 'vertical', minHeight: '100px' }}
+            />
+          </Form.Item>
+          
+          {/* 文件上传按钮 - 仅在插件需要文件上传时显示 */}
+          {needsFileUpload(currentPlugin) && onFileUpload && (
+            <Form.Item label="文件上传">
+              <Upload
+                showUploadList={false}
+                customRequest={onFileUpload}
+                accept="*/*"
+              >
+                <Button 
+                  icon={<UploadOutlined />}
+                  type="default"
+                  style={{ 
+                    width: '100%',
+                    borderStyle: 'dashed',
+                    borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                    backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
+                    color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                  }}
+                >
+                  点击上传文件
+                </Button>
+              </Upload>
+            </Form.Item>
+          )}
+          
+          {/* 提示词显示区域 - 针对额外参数 */}
           {currentPlugin.simple_menu_def && (
             <div 
               style={{
@@ -383,7 +555,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px'
               }}>
-                💡 提示词
+                💡 额外参数提示
               </div>
               {currentPlugin.simple_menu_def}
             </div>
@@ -420,7 +592,10 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
         width={600}
       >
         <Form form={complexMenuForm} layout="vertical">
-          {Object.entries(currentPlugin.complex_menu_def).map(([key, item]: [string, any]) => {
+          
+          
+          
+          {Object.entries(currentPlugin.complex_menu_def).map(([key, item]: [string, any], index) => {
             // 判断是否为文本框类型
             const isTextArea = key === 'advanced_arg' || item.description?.length > 50;
             
@@ -484,9 +659,121 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                     )
                   )}
                 </Form.Item>
+
+                {/* 在第一个输入框下面添加文件上传按钮 */}
+                {index === 0 && needsFileUpload(currentPlugin) && onFileUpload && (
+                  <Form.Item label="文件上传">
+                    <Upload
+                      showUploadList={false}
+                      customRequest={onFileUpload}
+                      accept="*/*"
+                    >
+                      <Button 
+                        icon={<UploadOutlined />}
+                        type="default"
+                        style={{ 
+                          width: '100%',
+                          borderStyle: 'dashed',
+                          borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                          backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
+                          color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                        }}
+                      >
+                        点击上传文件
+                      </Button>
+                    </Upload>
+                  </Form.Item>
+                )}
+                
               </div>
             );
           })}
+        </Form>
+      </Modal>
+    );
+  };
+
+  // 渲染无菜单弹窗
+  const renderNoMenu = () => {
+    if (!currentPlugin) return null;
+
+    return (
+      <Modal
+        title={`${currentPlugin.name} - 输入内容`}
+        open={isNoMenuVisible}
+        onOk={handleNoMenuOk}
+        onCancel={handleMenuCancel}
+        okText="确认"
+        cancelText="取消"
+        width={600}
+      >
+        <Form form={noMenuForm} layout="vertical">
+          {/* 插件描述提示区域 */}
+          {currentPlugin.description && (
+            <div 
+              style={{
+                background: '#f6f8fa',
+                border: '1px solid #e1e4e8',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                color: '#24292e',
+                fontStyle: 'italic',
+                fontWeight: '500'
+              }}
+            >
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#586069', 
+                marginBottom: '4px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                💡 插件描述
+              </div>
+              {currentPlugin.description}
+            </div>
+          )}
+          
+          <Form.Item
+            label="输入内容"
+            name="user_input"
+            rules={[{ required: false }]}
+          >
+            <TextArea
+              rows={6}
+              placeholder="请输入内容"
+              style={{ resize: 'vertical', minHeight: '120px' }}
+            />
+          </Form.Item>
+          
+          {/* 文件上传按钮 - 仅在插件需要文件上传时显示 */}
+          {needsFileUpload(currentPlugin) && onFileUpload && (
+            <Form.Item label="文件上传">
+              <Upload
+                showUploadList={false}
+                customRequest={onFileUpload}
+                accept="*/*"
+              >
+                <Button 
+                  icon={<UploadOutlined />}
+                  type="default"
+                  style={{ 
+                    width: '100%',
+                    borderStyle: 'dashed',
+                    borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                    backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
+                    color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                  }}
+                >
+                  点击上传文件
+                </Button>
+              </Upload>
+            </Form.Item>
+          )}
         </Form>
       </Modal>
     );
@@ -633,6 +920,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
       {/* 渲染菜单组件 */}
       {renderSimpleMenu()}
       {renderComplexMenu()}
+      {renderNoMenu()}
     </div>
   );
 };

@@ -524,6 +524,8 @@ function App() {
           isStreaming={isStreaming}
           isWaiting={isWaiting}
           setMainInput={setMainInput}
+          handleSendMessage={handleSendMessage}
+          onFileUpload={onFileUpload}
         />
         <div className="flex flex-col h-full flex-1 relative bg-white dark:bg-gray-800 overflow-hidden">
           {/* 顶部HeaderBar */}
