@@ -122,8 +122,9 @@ ipcMain.handle('open-win', (_, arg) => {
   }
 })
 
+
 // 处理文件下载
-ipcMain.handle('download-file', async (_, fileUrl: string) => {
+ipcMain.handle('download-file', async (event, fileUrl: string) => {
   try {
     const { net } = require('electron')
     const fs = require('fs')
@@ -133,10 +134,10 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
     const formData = new URLSearchParams()
     formData.append('file_path', fileUrl)
 
-    console.log(`准备下载文件，method `+ formData.get('file_path') + ` url: http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`)
+    console.log(`准备下载文件，method `+ formData.get('file_path') + ` url: http://localhost:${process.env.VITE_WEBSOCKET_PORT || '28000'}/download`)
     const request = net.request({
       method: 'POST',
-      url: `http://localhost:${process.env.VITE_WEBSOCKET_PORT || '58000'}/download`,
+      url: `http://localhost:${process.env.VITE_WEBSOCKET_PORT || '28000'}/download`,
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -146,13 +147,34 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
       let responseData = Buffer.alloc(0)
       let filename = 'download'
 
+      // 从URL中提取文件名
+      try {
+        // 处理URL，移除查询参数
+        const cleanUrl = fileUrl.split('?')[0]
+        const urlParts = cleanUrl.split('/')
+        const urlFilename = urlParts[urlParts.length - 1]
+        
+        // 检查文件名是否有效（包含扩展名且不为空）
+        if (urlFilename && urlFilename.includes('.') && urlFilename.length > 0) {
+          filename = urlFilename
+          //console.log('从URL提取的文件名:', filename)
+        }
+      } catch (error) {
+        console.log('从URL提取文件名失败:', error)
+      }
+
       request.on('response', (response: any) => {
         if (response.statusCode !== 200) {
           resolve({ success: false, error: `HTTP ${response.statusCode}` })
           return
         }
 
-        // 获取文件名
+        // 获取文件总大小用于进度计算
+        const contentLength = response.headers['content-length']
+        const total = contentLength ? parseInt(contentLength, 10) : 0
+        let loaded = 0
+
+        // 优先从content-disposition头获取文件名，如果没有则使用URL中的文件名
         const contentDisposition = response.headers['content-disposition']
         if (contentDisposition && typeof contentDisposition === 'string') {
           const filenameMatch = contentDisposition.match(/filename="(.+)"/)
@@ -163,6 +185,13 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
 
         response.on('data', (chunk: Buffer) => {
           responseData = Buffer.concat([responseData, chunk])
+          loaded += chunk.length
+          
+          // 发送进度更新到渲染进程
+          if (total > 0) {
+            const percent = Math.round((loaded / total) * 100)
+            event.sender.send('download-progress', percent)
+          }
         })
 
         response.on('end', () => {
@@ -174,6 +203,8 @@ ipcMain.handle('download-file', async (_, fileUrl: string) => {
             // 写入文件
             fs.writeFileSync(filePath, responseData)
 
+            // 发送完成信号
+            event.sender.send('download-progress', 100)
             resolve({ success: true, filePath })
           } catch (error: any) {
             resolve({ success: false, error: error?.message || '写入文件失败' })

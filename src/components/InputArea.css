@@ -120,3 +120,60 @@
     font-size: 11px !important;
   }
 }
+
+/* Placeholder样式 */
+.dark-placeholder::placeholder {
+  color: #ffffff !important; /* 暗色主题下的白色placeholder */
+  opacity: 1;
+}
+
+.light-placeholder::placeholder {
+  color: #6b7280 !important; /* 亮色主题下的深灰色placeholder */
+  opacity: 1;
+}
+
+/* 确保Ant Design的TextArea placeholder样式被覆盖 */
+.dark-placeholder .ant-input::placeholder {
+  color: #ffffff !important;
+}
+
+.light-placeholder .ant-input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* 输入框滚动条样式 */
+.input-area-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* 亮色主题滚动条 */
+.light-placeholder::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.light-placeholder::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.light-placeholder::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 暗色主题滚动条 */
+.dark-placeholder::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 2px;
+}
+
+.dark-placeholder::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.dark-placeholder::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

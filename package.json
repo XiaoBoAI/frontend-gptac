@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ant-design/pro-components": "^2.8.10",
     "@types/react-syntax-highlighter": "^15.5.13",
     "antd": "^5.26.3",
     "electron-updater": "^6.3.9",

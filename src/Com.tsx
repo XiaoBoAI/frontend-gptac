@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
+import { set } from 'lodash';
 
 export interface UserInterfaceMsg {
   function: string;
@@ -12,6 +13,7 @@ export interface UserInterfaceMsg {
   system_prompt: string;
   user_request: Record<string, any>;
   special_kwargs: Record<string, any>;
+  special_state: Record<string, any>;
 }
 
 
@@ -34,7 +36,8 @@ export function useUserInterfaceMsg() {
     history: [],
     system_prompt: '',
     user_request: {'username': 'default_user'},
-    special_kwargs: {}
+    special_kwargs: {},
+    special_state: {}
   });
   // 请不要在 Com.tsx 源文件外面修改 AUTO_USER_COM_INTERFACE
 
@@ -94,6 +97,12 @@ export function useUserInterfaceMsg() {
     AUTO_USER_COM_INTERFACE.current.special_kwargs = specialKwargs;
   }, [specialKwargs]);
 
+    // ------------------------ plugin_kwargs (map to UserInterfaceMsg.plugin_kwargs) -------------------------
+  const [pluginKwargs, setPluginKwargs] = useState<Record<string, any>>({});
+  useEffect(() => {
+    AUTO_USER_COM_INTERFACE.current.plugin_kwargs = pluginKwargs;
+  }, [pluginKwargs]);
+
   // ------------------------ top_p (map to UserInterfaceMsg.llm_kwargs.top_p) -------------------------
   const [topP, setTopP] = useState(1.0);
   useEffect(() => {
@@ -115,13 +124,40 @@ export function useUserInterfaceMsg() {
 
 
   const onComReceived = (received_msg: UserInterfaceMsg) => {
+
+
     // 更新状态
-    setCurrentModule(received_msg.function);
+    if (received_msg.function) {
+      setCurrentModule(received_msg.function);
+    }
 
     // 只有在服务器明确返回非空的main_input时才更新输入框
     // 这样可以避免在流式回复过程中清空用户的输入
     if (received_msg.main_input && received_msg.main_input.trim() !== '') {
       setMainInput(received_msg.main_input);
+    }
+
+    // setSpecialKwargs(received_msg.special_kwargs);
+
+    if(received_msg.special_state["msg"] == "完成上传") {
+      const last_chatbot_msg = received_msg.chatbot[received_msg.chatbot.length-1][1];
+
+      //console.log('last_chatbot_msg', last_chatbot_msg);
+      
+      // 从上传完成消息中提取文件路径
+      if (last_chatbot_msg && typeof last_chatbot_msg === 'string') {
+        // 从 Markdown 表格中提取文件路径
+        const filePathMatch = last_chatbot_msg.match(/\|.*\|\s*\n\|.*\|\s*\n\|.*(private_upload\/[^\s|]+)\s*\|/);
+
+          console.log('filePathMatch', filePathMatch?.[1]);
+        if (filePathMatch && filePathMatch[1]) {
+            const filePath = filePathMatch[1];
+          setSpecialKwargs({
+            ...received_msg.special_kwargs,
+            uploaded_file_path: filePath,
+          });
+        } 
+      }
     }
 
 
@@ -149,7 +185,8 @@ export function useUserInterfaceMsg() {
     if (received_msg.system_prompt) {
       setSystemPrompt(received_msg.system_prompt);
     }
-    setSpecialKwargs(received_msg.special_kwargs);
+    
+    // setPluginKwargs(received_msg.plugin_kwargs); // 不覆盖 PluginKwargs
     if (received_msg.llm_kwargs && received_msg.llm_kwargs.top_p) {
       setTopP(received_msg.llm_kwargs.top_p);
     }
@@ -180,6 +217,8 @@ export function useUserInterfaceMsg() {
     setSystemPrompt,
     specialKwargs,
     setSpecialKwargs,
+    pluginKwargs,
+    setPluginKwargs,
     topP,
     setTopP,
     temperature,
@@ -221,7 +260,8 @@ export function useWebSocketCom() {
     onMessageCallback: (event: MessageEvent) => void,
     onOpenCallback: () => void,
     onErrorCallback: (event: Event) => void,
-    onCloseCallback: (event: CloseEvent) => void
+    onCloseCallback: (event: CloseEvent) => void,
+    onUploadError?: (error: string) => void
   ) => {
     console.log('begin websocket at', url);
     const ws = new WebSocket(url);
@@ -232,7 +272,8 @@ export function useWebSocketCom() {
           uploadRequest,
           (files: Array<string>, error: string) => {
             ws.send(JSON.stringify(buildUploadUserComInterface(AUTO_USER_COM_INTERFACE, files, error)));
-          }
+          },
+          onUploadError
         );
       } else {
         console.log('send AUTO_USER_COM_INTERFACE', AUTO_USER_COM_INTERFACE);
@@ -263,7 +304,7 @@ export function useWebSocketCom() {
 
 
 // 处理文件上传
-const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any) => {
+const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any, onUploadError?: (error: string) => void) => {
   const { file, onProgress, onSuccess, onError } = options;
   const formData = new FormData();
   formData.append('files', file);
@@ -275,6 +316,7 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
     xhr.upload.addEventListener('progress', event => {
       if (event.lengthComputable) {
         const percent = Math.round((event.loaded / event.total) * 100);
+        console.log('上传进度:', percent + '%');
         onProgress?.({ percent });
       }
     });
@@ -296,38 +338,68 @@ const beginHttpUpload = async (options: UploadRequestOption, finishCallback: any
     });
 
     xhr.addEventListener('error', () => {
-      const error = new Error('上传失败');
-      finishCallback([], '上传失败')
-      onError?.(error);
+      const errorMsg = '网络错误导致上传失败';
+      console.error('上传失败:', errorMsg);
+      finishCallback([], errorMsg);
+      onUploadError?.(errorMsg);
     });
 
     xhr.open('POST', uploadUrl, true);
     xhr.send(formData);
   } catch (error) {
-    finishCallback([], '上传失败');
-    onError?.(error as Error);
+    const errorMsg = error instanceof Error ? error.message : '上传失败';
+    console.error('上传异常:', errorMsg);
+    finishCallback([], errorMsg);
+    onUploadError?.(errorMsg);
   }
 };
 
 
 // 处理文件下载
-export const beginHttpDownload = async (fileUrl: string) => {
+export const beginHttpDownload = async (fileUrl: string, onProgress?: (percent: number) => void, onError?: (error: string) => void) => {
   // 判断是否为 Electron 环境
   const isElectron = typeof window !== 'undefined' && window.ipcRenderer && typeof (window.ipcRenderer as any).invoke === 'function';
 
+  //console.log('isElectron', isElectron);
+
+
   if (isElectron) {
+    // 监听下载进度
+    const progressHandler = (event: any, percent: number) => {
+      console.log('Electron下载进度:', percent + '%');
+      onProgress?.(percent);
+    };
+    
     try {
+      // 注册进度监听器
+      (window.ipcRenderer as any).on('download-progress', progressHandler);
+      
       // Electron 环境下，使用主进程下载文件到桌面
       const result = await (window.ipcRenderer as any).invoke('download-file', fileUrl);
+      //console.log('result', result);
+      
+      // 移除进度监听器
+      (window.ipcRenderer as any).off('download-progress', progressHandler);
+      
       if (result.success) {
-        // 下载成功，弹出完成提醒
-        alert(`文件已下载到桌面: ${result.filePath}`);
+        // 下载成功，不显示 alert，让前端处理
+        console.log(`文件已下载到桌面: ${result.filePath}`);
       } else {
-        alert(`下载失败: ${result.error || '未知错误'}`);
+        // 下载失败，将错误信息传递给前端
+        const errorMsg = result.error || '未知错误';
+        console.error('下载失败:', errorMsg);
+        onError?.(errorMsg);
       }
     } catch (error) {
       console.error('下载失败:', error);
-      alert(`下载失败: ${error}`);
+      // 将错误信息传递给前端
+      onError?.(error instanceof Error ? error.message : String(error));
+      // 确保在错误情况下也移除监听器
+      try {
+        (window.ipcRenderer as any).off('download-progress', progressHandler);
+      } catch (e) {
+        // 忽略移除监听器时的错误
+      }
     }
   } else {
     // 非 Electron 环境，使用 fetch 下载文件
@@ -351,24 +423,66 @@ export const beginHttpDownload = async (fileUrl: string) => {
           }
         }
 
-        // 创建下载链接
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // 获取内容长度用于进度计算
+        const contentLength = response.headers.get('Content-Length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        let loaded = 0;
+
+        // 创建 ReadableStream 来处理下载进度
+        const reader = response.body?.getReader();
+        //console.log('reader', reader);
+        if (reader) {
+          const chunks: Uint8Array[] = [];
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            chunks.push(value);
+            loaded += value.length;
+            console.log('loaded', loaded);
+            
+            // 更新进度
+            if (total > 0 && onProgress) {
+              const percent = Math.round((loaded / total) * 100);
+              onProgress(percent);
+            }
+          }
+          
+          // 合并所有 chunks
+          const blob = new Blob(chunks);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          // 回退到原始方法
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }
       } else {
         const errorData = await response.json();
-        alert(`下载失败: ${errorData.error || '未知错误'}`);
+        const errorMsg = errorData.error || '未知错误';
+        console.error('下载失败:', errorMsg);
+        onError?.(errorMsg);
       }
     } catch (error) {
       console.error('下载失败:', error);
-      alert(`下载失败: ${error}`);
+      onError?.(error instanceof Error ? error.message : String(error));
     }
   }
 }
