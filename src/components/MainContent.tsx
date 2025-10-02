@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Avatar, Typography, message as antdMessage } from 'antd';
-import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { UserOutlined, RobotOutlined, LoadingOutlined, CopyOutlined, CheckOutlined, DownloadOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -12,6 +12,8 @@ import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
 import './MainContent.css';
 import { useAvatar } from './AvatarContext';
+import { beginHttpDownload } from '../Com';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   EditMessageDialog,
   DeleteMessageDialog,
@@ -82,6 +84,7 @@ const CopyMessageButton: React.FC<{ text: string }> = ({ text }) => {
 
 // 代码块组件，包含高亮和复制功能
 const CodeBlock: React.FC<{ children: string; className?: string }> = ({ children, className }) => {
+  const { theme } = useTheme();
   const [copied, setCopied] = useState(false);
   
   // 从className中提取语言类型
@@ -155,7 +158,11 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
       {/* 复制按钮 */}
               <button
           onClick={handleCopy}
-          className="absolute top-3 right-3 z-10 p-2 rounded-md bg-gray-700 text-gray-300 opacity-100 transition-all duration-200 hover:bg-gray-600 hover:scale-105"
+          className={`absolute top-3 right-3 z-10 p-2 rounded-md opacity-100 transition-all duration-200 hover:scale-105 ${
+            theme === 'dark' 
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+          }`}
           title="复制代码"
         >
         {copied ? (
@@ -175,7 +182,7 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
       {/* 代码高亮 */}
       <SyntaxHighlighter
         language={language === 'text' ? undefined : language}
-        style={tomorrow}
+        style={theme === 'dark' ? tomorrow : tomorrow}
         customStyle={{
           margin: 0,
           borderRadius: '12px',
@@ -184,14 +191,14 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
           padding: '20px',
           //paddingTop: language !== 'text' ? '35px' : '20px',
           paddingRight: '50px',
-          backgroundColor: '#1a202c',
-          border: 'none',
+          backgroundColor: theme === 'dark' ? '#1a202c' : '#f8f9fa',
+          border: theme === 'dark' ? 'none' : '1px solid #e9ecef',
           boxShadow: 'none'
         }}
         showLineNumbers={language !== 'text'}
         wrapLines={true}
         lineNumberStyle={{
-          color: '#718096',
+          color: theme === 'dark' ? '#718096' : '#6c757d',
           fontSize: '12px',
           paddingRight: '16px',
           minWidth: '2.5em'
@@ -210,6 +217,8 @@ interface MainContentProps {
   // isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
+  setSpecialKwargs?: (kwargs: any) => void;
+  onDownload?: (fileUrl: string) => void; // 下载处理函数
   onUpdateMessage?: (index: number, text: string) => void; // 消息编辑回调
   onDeleteMessage?: (index: number) => void; // 消息删除回调
 }
@@ -219,24 +228,65 @@ const MainContent: React.FC<MainContentProps> = ({
   chatbot,
   isStreaming = false,
   isWaiting = false,
+  setSpecialKwargs,
+  onDownload,
   onUpdateMessage,
   onDeleteMessage
 }) => {
+  const { theme } = useTheme();
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef(null);
   const messageSpeedRef = useRef<Record<string, number>>({});
   const [showWaiting, setShowWaiting] = useState(false);
   const [isEmpty, setIsEmpty] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   // 获取 token 速度状态
   const tokenSpeedState = useAppState((state) => state.tokenSpeed);
   const streamingContent = useAppState((state) => state.streamingContent);
   const streamingTokenSpeed = tokenSpeedState?.tokenSpeed ?? 0;
 
+  // 智能滚动函数
+  const scrollToBottom = (force = false) => {
+    const element = messagesEndRef.current as unknown as HTMLDivElement;
+    const container = element?.parentElement?.parentElement;
+
+    if (element && container) {
+      // 检查用户是否在底部附近
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+      // 如果用户不在底部附近且不是强制滚动，则不滚动
+      if (!isNearBottom && !force && !isStreaming) {
+        return;
+      }
+
+      // 使用 requestAnimationFrame 确保在正确的时机执行滚动
+      requestAnimationFrame(() => {
+        // 在流式回复过程中使用 instant 滚动，避免抖动
+        const behavior = isStreaming && !force ? "instant" : "smooth";
+        element.scrollIntoView({ behavior, block: "end" });
+      });
+    }
+  };
+
+  // 简单的防抖函数
+  const debounce = (func: Function, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(null, args), delay);
+    };
+  };
+
+  // 使用 useCallback 优化滚动函数
+  const debouncedScrollToBottom = useCallback(
+    debounce(() => scrollToBottom(), 100),
+    [isStreaming]
+  );
+
   useEffect(() => {
     // loop chatbot, convert to ChatMessage[]
-    //console.log('chatbot update');
     const message_buffer: ChatMessage[] = [];
     console.log('chatbot', chatbot);
     if (chatbot.length === 0) {
@@ -272,7 +322,6 @@ const MainContent: React.FC<MainContentProps> = ({
         } else if (messageSpeedRef.current[messageKey] !== undefined) {
           speedValue = messageSpeedRef.current[messageKey];
         }
-
         message_buffer.push({
           id: `bot-${i}-${Date.now()}`,
           sender: 'bot',
@@ -294,15 +343,6 @@ const MainContent: React.FC<MainContentProps> = ({
     setIsEmpty(chatbot.length === 0);
   }, [chatbot]);
 
-
-  useEffect(() => {
-    // 消息更新后滚动到底部
-    const element = messagesEndRef.current as unknown as HTMLDivElement;
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [messages]);
-
   // 监听等待状态变化
   useEffect(() => {
     if (isWaiting) {
@@ -312,13 +352,19 @@ const MainContent: React.FC<MainContentProps> = ({
     }
   }, [isWaiting]);
 
-  // 监听消息变化和流式状态，滚动到底部
+  // 统一的滚动处理逻辑
   useEffect(() => {
-    const element = messagesEndRef.current as unknown as HTMLDivElement;
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "end" });
+    // 只有在有新消息时才滚动
+    if (messages.length > 0) {
+      if (isStreaming) {
+        // 流式回复时立即滚动，不使用动画
+        scrollToBottom();
+      } else {
+        // 非流式回复时使用防抖滚动
+        debouncedScrollToBottom();
+      }
     }
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, debouncedScrollToBottom]);
 
 
 
@@ -326,7 +372,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const titles = {
       'ai_chat': 'AI对话',
       'academic_chat': '学术对话',
-      'paper_qa': '快速论文解读',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '联网搜索并回答',
       'paper_write': '论文写作',
       'paper_translate': '论文翻译',
       'document_analysis': '文档分析',
@@ -342,8 +388,8 @@ const MainContent: React.FC<MainContentProps> = ({
   const getModuleDescription = (module: string) => {
     const descriptions = {
       'ai_chat': '与AI进行智能对话，获取各种问题的答案',
-      'academic_chat': '专注于学术领域的深度对话和讨论',
-      'paper_qa': '针对论文进行快速解读，帮助理解学术文献',
+      'academic_chat': '专注于学术领域的深度对话和讨论\n例如：寻找2025年强化学习相关论文，并进行总结',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '连接网络搜索最新信息，提供实时准确的答案',
       'paper_write': '辅助论文写作，提供写作建议和内容生成',
       'paper_translate': '学术论文翻译服务，支持多语言互译',
       'document_analysis': '智能分析文档内容，提取关键信息',
@@ -360,7 +406,7 @@ const MainContent: React.FC<MainContentProps> = ({
     const icons = {
       'ai_chat': '🤖',
       'academic_chat': '🎓',
-      'paper_qa': '❓',
+      'crazy_functions.Internet_GPT->连接网络回答问题': '🌐',
       'paper_write': '✍️',
       'paper_translate': '��',
       'document_analysis': '📄',
@@ -375,16 +421,24 @@ const MainContent: React.FC<MainContentProps> = ({
 
   if (isEmpty) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-8">
+      <div className={`flex-1 flex flex-col items-center justify-center px-8 ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}>
         <div className="text-center max-w-2xl">
           <div className="text-6xl mb-6">{getModuleIcon(currentSessionType)}</div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+          <h1 className={`text-3xl font-bold mb-4 ${
+            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+          }`}>
             {getModuleTitle(currentSessionType)}
           </h1>
-          <p className="text-lg text-gray-600 leading-relaxed">
+          <p className={`text-lg leading-relaxed whitespace-pre-line ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             {getModuleDescription(currentSessionType)}
           </p>
-          <div className="mt-8 text-sm text-gray-500">
+          <div className={`mt-8 text-sm ${
+            theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+          }`}>
             在下方输入框中开始您的对话...
           </div>
         </div>
@@ -393,20 +447,33 @@ const MainContent: React.FC<MainContentProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-white" style={{
-      scrollbarWidth: 'thin',
-      scrollbarColor: '#d1d5db transparent',
-      // WebKit滚动条样式
-      '--scrollbar-width': '6px',
-      '--scrollbar-track': 'transparent',
-      '--scrollbar-thumb': '#d1d5db',
-      '--scrollbar-thumb-hover': '#9ca3af'
-    } as React.CSSProperties}>
-      <div className="max-w-4xl mx-auto px-6 py-2" style={{
-        // 内联样式定义滚动条
+    <div
+      className={`flex-1 overflow-auto ${
+        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+      }`}
+      style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: '#d1d5db transparent'
-      }}>
+        scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
+        // WebKit滚动条样式
+        '--scrollbar-width': '6px',
+        '--scrollbar-track': 'transparent',
+        '--scrollbar-thumb': theme === 'dark' ? '#4b5563' : '#d1d5db',
+        '--scrollbar-thumb-hover': theme === 'dark' ? '#6b7280' : '#9ca3af',
+        // 优化滚动性能
+        scrollBehavior: 'auto',
+        willChange: 'scroll-position'
+      } as React.CSSProperties}
+    >
+      <div
+        className="max-w-4xl mx-auto px-6 py-2"
+        style={{
+          // 内联样式定义滚动条
+          scrollbarWidth: 'thin',
+          scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
+          // 确保内容不会因为滚动而重排
+          contain: 'layout style paint'
+        }}
+      >
         {messages.map((message, index) => (
           <div
             key={index}
@@ -441,8 +508,12 @@ const MainContent: React.FC<MainContentProps> = ({
                 <div
                   className={`inline-block px-6 py-4 rounded-2xl max-w-full ${
                     message.sender === 'user'
-                      ? 'bg-gray-200 text-gray-800'
-                      : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200'
+                      ? (theme === 'dark' 
+                          ? 'bg-gray-700 text-gray-200' 
+                          : 'bg-gray-200 text-gray-800')
+                      : (theme === 'dark' 
+                          ? 'bg-gray-800 text-gray-200 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-700' 
+                          : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200')
                   }`}
                   style={{
                     wordBreak: 'break-word',
@@ -481,7 +552,11 @@ const MainContent: React.FC<MainContentProps> = ({
                             const isInline = !className;
                             if (isInline) {
                               return (
-                                <code className="bg-gray-200 px-1 py-0.5 rounded text-sm text-gray-800 font-mono">
+                                <code className={`px-1 py-0.5 rounded text-sm font-mono ${
+                                  theme === 'dark' 
+                                    ? 'bg-gray-700 text-gray-200' 
+                                    : 'bg-gray-200 text-gray-800'
+                                }`}>
                                   {children}
                                 </code>
                               );
@@ -492,30 +567,97 @@ const MainContent: React.FC<MainContentProps> = ({
                           ul: ({ children }) => <ul className="list-disc list-outside mb-1 ml-4 space-y-0.5">{children}</ul>,
                           ol: ({ children }) => <ol className="list-decimal list-outside mb-1 ml-4 space-y-0.5">{children}</ol>,
                           li: ({ children }) => <li className="mb-0.5 leading-relaxed pl-1">{children}</li>,
-                          h1: ({ children }) => <h1 className="text-xl font-bold mb-1 leading-tight">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-lg font-bold mb-1 leading-tight">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-base font-bold mb-1 leading-tight">{children}</h3>,
+                          h1: ({ children }) => <h1 className={`text-xl font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h1>,
+                          h2: ({ children }) => <h2 className={`text-lg font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h2>,
+                          h3: ({ children }) => <h3 className={`text-base font-bold mb-1 leading-tight ${
+                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                          }`}>{children}</h3>,
                           blockquote: ({ children }) => (
-                            <blockquote className="border-l-4 border-gray-300 pl-4 italic mb-1">
+                            <blockquote className={`border-l-4 pl-4 italic mb-1 ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 text-gray-300' 
+                                : 'border-gray-300 text-gray-700'
+                            }`}>
                               {children}
                             </blockquote>
                           ),
                           hr: () => (
-                            <hr className="my-2 border-gray-300" style={{ border: 'none', borderTop: '1px solid #e5e7eb', height: '1px' }} />
+                            <hr className={`my-2 ${
+                              theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                            }`} style={{ border: 'none', borderTop: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, height: '1px' }} />
                           ),
                           table: ({ children }) => (
                             <div className="overflow-x-auto mb-3">
-                              <table className="min-w-full border border-gray-300">{children}</table>
+                              <table className={`min-w-full border ${
+                                theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                              }`}>{children}</table>
                             </div>
                           ),
                           th: ({ children }) => (
-                            <th className="border border-gray-300 px-3 py-2 bg-gray-50 font-semibold">
+                            <th className={`border px-3 py-2 font-semibold ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 bg-gray-700 text-gray-200' 
+                                : 'border-gray-300 bg-gray-50 text-gray-800'
+                            }`}>
                               {children}
                             </th>
                           ),
                           td: ({ children }) => (
-                            <td className="border border-gray-300 px-3 py-2">{children}</td>
+                            <td className={`border px-3 py-2 ${
+                              theme === 'dark' 
+                                ? 'border-gray-600 text-gray-200' 
+                                : 'border-gray-300 text-gray-800'
+                            }`}>{children}</td>
                           ),
+                          a: ({ children, href }) => {
+                            // 检查是否为下载链接（通过文件扩展名或特殊标识）
+                            const isDownloadLink = href && (
+                              href.includes('/download') ||
+                              href.includes('/file') ||
+                              href.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|tar|gz|mp3|mp4|avi|mov|jpg|jpeg|png|gif|svg|txt|csv|json|xml|sql|py|js|ts|java|cpp|c|h|html|css|md|bib|enw)$/i) ||
+                              href.includes('download=true') ||
+                              href.includes('attachment')
+                            );
+
+                            if (isDownloadLink) {
+                              return (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:underline inline-flex items-center"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (href && onDownload) {
+                                      onDownload(href);
+                                    } else if (href) {
+                                      beginHttpDownload(href);
+                                    }
+                                  }}
+                                  title="点击下载文件"
+                                >
+                                  {children}
+                                  <DownloadOutlined className="ml-1" style={{ fontSize: '14px' }} />
+                                </a>
+                              );
+                            }
+
+                            // 普通链接
+                            return (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 dark:text-blue-400 hover:underline"
+                              >
+                                {children}
+                              </a>
+                            );
+                          }
                         }}
                       >
                         {message.text}
@@ -583,7 +725,7 @@ const MainContent: React.FC<MainContentProps> = ({
                         }}
                       />
                       <MessageMetadataDialog metadata={message.metadata || {}} />
-                      
+
                       {/* 重新生成按钮 - 仅最后一条消息显示 */}
                       {index === messages.length - 1 && (
                         <Tooltip>
@@ -612,7 +754,7 @@ const MainContent: React.FC<MainContentProps> = ({
                         </Tooltip>
                       )}
                     </div>
-                    
+
                     {/* Token 速度指示器 */}
                     <TokenSpeedIndicator
                       streaming={isStreaming && index === messages.length - 1}

@@ -6,14 +6,44 @@
   :root {
     --radius: 0.5rem;
   }
-  
+
   body {
     @apply bg-white text-gray-900;
   }
-  
+
   svg {
     stroke-width: 1.5;
   }
+}
+
+/* 主题变量定义 */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --border-color: #374151;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 全局主题样式 */
+.light-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Markdown 样式覆盖 */
@@ -29,6 +59,28 @@
   word-wrap: break-word;
 }
 
+/* 暗色主题下的markdown样式 */
+.dark-theme .markdown-body {
+  color: var(--text-primary);
+}
+
+.dark-theme .markdown-body h1,
+.dark-theme .markdown-body h2,
+.dark-theme .markdown-body h3,
+.dark-theme .markdown-body h4,
+.dark-theme .markdown-body h5,
+.dark-theme .markdown-body h6 {
+  color: var(--text-primary);
+}
+
+.dark-theme .markdown-body p {
+  color: var(--text-primary);
+}
+
+.dark-theme .markdown-body strong {
+  color: var(--text-primary);
+}
+
 .markdown-body pre {
   background-color: #f6f8fa !important;
   border: 1px solid #e1e4e8 !important;
@@ -40,6 +92,11 @@
   max-width: 100% !important;
   white-space: pre-wrap !important;
   word-wrap: break-word !important;
+}
+
+.dark-theme .markdown-body pre {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
 }
 
 .markdown-body pre code {
@@ -62,6 +119,11 @@
   margin: 0 !important;
   border-radius: 3px !important;
   color: inherit !important;
+}
+
+.dark-theme .markdown-body code {
+  background-color: rgba(75, 85, 99, 0.3) !important;
+  color: var(--text-primary) !important;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
   font-size: 85% !important;
 }

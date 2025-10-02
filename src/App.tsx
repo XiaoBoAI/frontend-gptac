@@ -8,7 +8,7 @@ import logoVite from './assets/logo-vite.svg'
 import logoElectron from './assets/logo-electron.svg'
 import './App.css'
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom, beginHttpDownload } from './Com'
-import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip } from 'antd';
+import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip, message } from 'antd';
 import {
   SendOutlined,
   UserOutlined,
@@ -26,6 +26,8 @@ import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
 import { useAvatar } from './components/AvatarContext';
 import { useAppState } from '@/hooks/useAppState';
+import ProgressBar from './components/ProgressBar';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -36,7 +38,7 @@ const { Text } = Typography;
 // 主应用组件
 function App() {
   const { updateBotAvatarForNewConversation } = useAvatar();
-  
+
   // Token 速度状态管理
   const { resetTokenSpeed, setTokenSpeed, updateStreamingContent } = useAppState();
   const lastChatbotLengthRef = useRef<number>(0);
@@ -63,6 +65,8 @@ function App() {
     setSystemPrompt,
     specialKwargs,
     setSpecialKwargs,
+    pluginKwargs,
+    setPluginKwargs,
     topP,
     setTopP,
     temperature,
@@ -86,6 +90,16 @@ function App() {
   const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
   const [ws, setWs] = useState<WebSocket | null>(null);
 
+  // 上传进度相关状态
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
+  const [uploadFileName, setUploadFileName] = useState('');
+
+  // 下载进度相关状态
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [showDownloadProgress, setShowDownloadProgress] = useState(false);
+  const [downloadFileName, setDownloadFileName] = useState('');
+
 
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
@@ -95,6 +109,16 @@ function App() {
   useEffect(() => {
     sessionRecordsRef.current = sessionRecords;
   }, [sessionRecords]);
+
+
+  useEffect(() => {
+    console.log('specialKwargs', specialKwargs);
+
+    if (specialKwargs.uploaded_file_path) {
+      if (currentModule == "crazy_functions.gpt_5.快速论文解读->快速论文解读" || currentModule == "paper_qa") {
+      setMainInput(specialKwargs.uploaded_file_path);
+    }}
+  }, [specialKwargs]);
 
 
 
@@ -162,7 +186,8 @@ function App() {
       history: [],
       system_prompt: systemPrompt,
       user_request: { username: 'default_user' },
-      special_kwargs: specialKwargs
+      special_kwargs: specialKwargs,
+      special_state: {}
     };
 
 
@@ -218,9 +243,71 @@ function App() {
 
 
   const onFileUpload = async (uploadRequest: UploadRequestOption) => {
-    // const { file, onProgress, onSuccess, onError } = options;
-    handleSendMessage(true, uploadRequest);
+    const { file } = uploadRequest;
+
+    // 显示上传进度条
+    const fileName = file instanceof File ? file.name : '未知文件';
+    setUploadFileName(fileName);
+    setUploadProgress(0);
+    setShowUploadProgress(true);
+
+    // 创建带有进度回调的 uploadRequest
+    const uploadRequestWithProgress = {
+      ...uploadRequest,
+      onProgress: (progress: any) => {
+        setUploadProgress(progress.percent);
+      },
+      onSuccess: () => {
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+      },
+      onError: () => {
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+      }
+    };
+
+    handleSendMessage(true, uploadRequestWithProgress);
   }
+
+   // 带进度条的下载函数
+  const downloadWithProgress = async (fileUrl: string) => {
+    // 从URL中提取文件名
+    const urlParts = fileUrl.split('/');
+    const fileName = urlParts[urlParts.length - 1] || '下载文件';
+
+    setDownloadFileName(fileName);
+    setDownloadProgress(0);
+    setShowDownloadProgress(true);
+
+    try {
+      await beginHttpDownload(
+        fileUrl,
+        (percent: number) => {
+          setDownloadProgress(percent);
+        },
+        (error: string) => {
+          // 下载失败，隐藏进度条并显示错误
+          setShowDownloadProgress(false);
+          setDownloadProgress(0);
+          console.error('下载失败:', error);
+          // 使用 Ant Design 的 message 组件显示错误
+          message.error(`下载失败: ${error}`);
+        }
+      );
+
+      // 下载完成后隐藏进度条
+      setTimeout(() => {
+        setShowDownloadProgress(false);
+        setDownloadProgress(0);
+      }, 1000);
+    } catch (error) {
+      setShowDownloadProgress(false);
+      setDownloadProgress(0);
+      console.error('下载失败:', error);
+      message.error(`下载失败: ${error}`);
+    }
+  };
 
 
   const handleSendMessage = async (isUploadMode: boolean = false, uploadRequest: UploadRequestOption | null = null) => {
@@ -230,6 +317,7 @@ function App() {
       sessionId = CreateNewSession(currentModule);
     }
     console.log('currentSessionId', sessionId);
+    console.log('currentModule', currentModule);
 
     // 使用正确的会话ID更新会话记录
     // const sessionRecord = sessionRecords.find(record => record.id === sessionId);
@@ -264,8 +352,10 @@ function App() {
       // onMessage callback
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
+
+        parsedMessage.function = currentModule;
         console.log('parsedMessage', parsedMessage);
-        
+
         // 计算新增的内容长度（作为 token 的近似值）
         const currentChatbot = parsedMessage.chatbot || [];
         const currentMessageIndex = currentChatbot.length - 1;
@@ -300,10 +390,10 @@ function App() {
             content: currentChatbot[currentMessageIndex][1],
           });
         }
-        
+
         // 计算新增的字符数作为 token 增量
         const increment = Math.max(0, currentLength - lastChatbotLengthRef.current);
-        
+
         // 根据总长度和起始时间计算 token 速度
         if (currentLength > 0 && messageStartTimeRef.current > 0) {
           const elapsedSeconds = Math.max((Date.now() - messageStartTimeRef.current) / 1000, 0.1);
@@ -319,9 +409,9 @@ function App() {
             content: currentChatbot[currentMessageIndex]?.[1] ?? '',
           });
         }
-        
+
         lastChatbotLengthRef.current = currentLength;
-        
+
         onComReceived(parsedMessage);
         setIsStreaming(true);
         setIsWaiting(false);
@@ -353,6 +443,13 @@ function App() {
         UpdateSessionRecord();
         resetTokenSpeed();
         updateStreamingContent(null);
+      },
+      // onUploadError callback
+      (error: string) => {
+        console.error('上传失败:', error);
+        setShowUploadProgress(false);
+        setUploadProgress(0);
+        message.error(`上传失败: ${error}`);
       }
     );
     setWs(ws);
@@ -432,9 +529,52 @@ function App() {
     }
   };
 
-  const downloadfile = () => {
-    const fileUrl = 'file=/home/fuqingxu/gpt_academic_private/gpt_log/default_user/d51f2f0a71/chat_history/聊天记录_2025-08-23-22-23-38.md';
-    beginHttpDownload(fileUrl);
+  const test_function_01 = async () => {
+    const response = await fetch('/crazy_functional', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+    if (response.ok) {
+      const data = await response.json();
+      console.log('插件列表:', data);
+    }
+  }
+  const test_function_02 = async () => {
+    //  # 有三种插件
+    //  # 第一种：无菜单插件，need_simple_menu=False, need_complex_menu=False
+    //  # - function 走 default_call_path
+    //  # 第二种：简易版菜单插件，need_simple_menu=True, need_complex_menu=False
+    //  # - function 走 default_call_path
+    //  # 第三种：复杂版菜单插件，need_simple_menu=False, need_complex_menu=True
+    //  # - function 走 complex_call_path
+
+    // 第1种：无菜单插件
+    // setMainInput('测试')
+    // setCurrentModule("crazy_functions.询问多个大语言模型->同时问询"); // 读取 default_call_path
+    // handleSendMessage();
+
+    // 第2种：简易版菜单插件
+    // setMainInput('测试')
+    // setCurrentModule("crazy_functions.批量文件询问->批量文件询问"); // 读取 default_call_path
+    // setPluginKwargs({
+    //   "advanced_arg": "some_file_name", // 第2种插件的拓展参数槽位固定是 advanced_arg
+    // });
+    // handleSendMessage();
+
+    // // // 第3种：复杂菜单调用实例: 保存的对话
+    // setMainInput('')
+    // setCurrentModule("crazy_functions.Conversation_To_File->Conversation_To_File_Wrap"); // 读取 complex_call_path
+    // setPluginKwargs({
+    //   "file_name": "some_file_name",  // 第3种插件的拓展参数槽位不固定，读取complex_menu_def获取拓展参数槽位清单
+    // });
+    // handleSendMessage();
+
+    setMainInput('private_upload/default_user/2025-08-31-05-33-48/2406.09246v3.pdf')
+    setCurrentModule("crazy_functions.gpt_5.快速论文解读->快速论文解读"); // 读取 complex_call_path
+    handleSendMessage();
   }
 
   // 处理消息编辑
@@ -443,7 +583,7 @@ function App() {
     // 每个chatbot条目包含[user_msg, ai_msg]
     const chatbotIndex = Math.floor(messageIndex / 2);
     const isUserMessage = messageIndex % 2 === 0;
-    
+
     const newChatbot = [...chatbot];
     if (chatbotIndex < newChatbot.length) {
       if (isUserMessage) {
@@ -452,7 +592,7 @@ function App() {
         newChatbot[chatbotIndex] = [newChatbot[chatbotIndex][0], newText];
       }
       setChatbot(newChatbot);
-      
+
       // 更新当前会话记录
       UpdateSessionRecord();
     }
@@ -462,7 +602,7 @@ function App() {
   const handleDeleteMessage = (messageIndex: number) => {
     const chatbotIndex = Math.floor(messageIndex / 2);
     const isUserMessage = messageIndex % 2 === 0;
-    
+
     const newChatbot = [...chatbot];
     if (chatbotIndex < newChatbot.length) {
       if (isUserMessage) {
@@ -473,67 +613,100 @@ function App() {
         newChatbot[chatbotIndex] = [newChatbot[chatbotIndex][0], ''];
       }
       setChatbot(newChatbot);
-      
+
       // 更新当前会话记录
       UpdateSessionRecord();
     }
   }
 
   return (
-    <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
-      <Sidebar
-        onSelectSessionType={handleSessionTypeChange}
-        currentSessionType={currentSessionType}
-        AdvancedSessionRecords={sessionRecords}
-        onHistorySelect={handleHistorySelect}
-        currentSessionId={currentSessionId}
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        onDeleteHistory={handleDeleteHistory}
-        onSaveSession={handleSaveSession}
-        setCurrentModule={setCurrentModule}
-        setSpecialKwargs={setSpecialKwargs}
-        specialKwargs={specialKwargs}
-        isStreaming={isStreaming}
-        isWaiting={isWaiting}
-      />
-      <div className="flex flex-col h-full flex-1 relative bg-white overflow-hidden">
-        {/* 顶部HeaderBar */}
-        <HeaderBar />
-        {/* 内容区 */}
-        <MainContent
+    <ThemeProvider>
+      <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
+        <Sidebar
+          onSelectSessionType={handleSessionTypeChange}
           currentSessionType={currentSessionType}
-          chatbot={chatbot}
-          isStreaming={isStreaming} // 传递流式状态
-          isWaiting={isWaiting} // 传递等待状态
-          onUpdateMessage={handleUpdateMessage} // 传递编辑消息回调
-          onDeleteMessage={handleDeleteMessage} // 传递删除消息回调
-        />
-        <InputArea
-          value={MainInput}
-          onChange={handleInputChange}
-          onSend={() => handleSendMessage()}
-          onClear={handleClear}
-          onStopStreaming={handleForceStop}
-          onFileUpload={onFileUpload}
-          currentModule={currentModule}
-          isEmpty={chatbot.length === 0}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
+          AdvancedSessionRecords={sessionRecords}
+          onHistorySelect={handleHistorySelect}
+          currentSessionId={currentSessionId}
+          collapsed={sidebarCollapsed}
+          onCollapse={setSidebarCollapsed}
+          onDeleteHistory={handleDeleteHistory}
+          onSaveSession={handleSaveSession}
+          setCurrentModule={setCurrentModule}
+          setSpecialKwargs={setSpecialKwargs}
+          setPluginKwargs={setPluginKwargs}
+          specialKwargs={specialKwargs}
           isStreaming={isStreaming}
-          // 传递模型参数
-          topP={topP}
-          setTopP={setTopP}
-          temperature={temperature}
-          setTemperature={setTemperature}
-          maxLength={maxLength}
-          setMaxLength={setMaxLength}
-          systemPrompt={systemPrompt}
-          setSystemPrompt={setSystemPrompt}
+          isWaiting={isWaiting}
+          setMainInput={setMainInput}
+          handleSendMessage={handleSendMessage}
+          onFileUpload={onFileUpload}
         />
-        <Button onClick={downloadfile}> 测试下载 </Button>
+        <div className="flex flex-col h-full flex-1 relative bg-white dark:bg-gray-800 overflow-hidden">
+          {/* 顶部HeaderBar */}
+          <HeaderBar />
+          {/* 内容区 */}
+          <MainContent
+            currentSessionType={currentSessionType}
+            chatbot={chatbot}
+            isStreaming={isStreaming} // 传递流式状态
+            isWaiting={isWaiting} // 传递等待状态
+            setSpecialKwargs={setSpecialKwargs}
+            onDownload={downloadWithProgress}
+            onUpdateMessage={handleUpdateMessage} // 传递编辑消息回调
+            onDeleteMessage={handleDeleteMessage} // 传递删除消息回调
+          />
+          <InputArea
+            value={MainInput}
+            onChange={handleInputChange}
+            onSend={() => handleSendMessage()}
+            onClear={handleClear}
+            onStopStreaming={handleForceStop}
+            onFileUpload={onFileUpload}
+            currentModule={currentModule}
+            isEmpty={chatbot.length === 0}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            isStreaming={isStreaming}
+            // 传递模型参数
+            topP={topP}
+            setTopP={setTopP}
+            temperature={temperature}
+            setTemperature={setTemperature}
+            maxLength={maxLength}
+            setMaxLength={setMaxLength}
+            systemPrompt={systemPrompt}
+            setSystemPrompt={setSystemPrompt}
+          />
+          {/* <Button onClick={test_function_01}> 测试获取插件json打印到console </Button> */}
+          {/* <Button onClick={test_function_02}> 测试插件调用 </Button> */}
+        </div>
+
+        {/* 上传进度条 */}
+        <ProgressBar
+          visible={showUploadProgress}
+          percent={uploadProgress}
+          title="文件上传中"
+          description={`正在上传: ${uploadFileName}`}
+          onCancel={() => {
+            setShowUploadProgress(false);
+            setUploadProgress(0);
+          }}
+        />
+
+        {/* 下载进度条 */}
+        <ProgressBar
+          visible={showDownloadProgress}
+          percent={downloadProgress}
+          title="文件下载中"
+          description={`正在下载: ${downloadFileName}`}
+          onCancel={() => {
+            setShowDownloadProgress(false);
+            setDownloadProgress(0);
+          }}
+        />
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
 
