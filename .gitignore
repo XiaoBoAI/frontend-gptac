@@ -31,6 +31,9 @@ yarn.lock
 /test-results/
 /playwright-report/
 /playwright/.cache/
+.env
+.env.web
+.env.electron
 
 # jan folder
 jan/
