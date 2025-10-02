@@ -8,7 +8,7 @@ import logoVite from './assets/logo-vite.svg'
 import logoElectron from './assets/logo-electron.svg'
 import './App.css'
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom, beginHttpDownload } from './Com'
-import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip, message } from 'antd';
+import { Input, ConfigProvider, Space, Button, List, Avatar, Layout, Card, Row, Col, Dropdown, Typography, Badge, Tooltip, message, theme as antdTheme } from 'antd';
 import {
   SendOutlined,
   UserOutlined,
@@ -27,7 +27,9 @@ import React from 'react';
 import { useAvatar } from './components/AvatarContext';
 import { useAppState } from '@/hooks/useAppState';
 import ProgressBar from './components/ProgressBar';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './providers/ThemeProvider';
+import { AppearanceProvider } from './providers/AppearanceProvider';
+import { useTheme } from '@/hooks/useTheme';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -38,6 +40,7 @@ const { Text } = Typography;
 // 主应用组件
 function App() {
   const { updateBotAvatarForNewConversation } = useAvatar();
+  const { isDark } = useTheme();
 
   // Token 速度状态管理
   const { resetTokenSpeed, setTokenSpeed, updateStreamingContent } = useAppState();
@@ -621,7 +624,22 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
+      <AppearanceProvider>
+        <ConfigProvider
+          theme={{
+            algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            token: {
+              colorPrimary: '#3b82f6',
+              colorBgContainer: isDark ? '#1e293b' : '#ffffff',
+              colorBorder: isDark ? '#334155' : '#e5e7eb',
+              colorText: isDark ? '#e5e7eb' : '#1f2937',
+              colorTextSecondary: isDark ? '#94a3b8' : '#6b7280',
+              colorBgElevated: isDark ? '#1e293b' : '#ffffff',
+              borderRadius: 8,
+            },
+          }}
+        >
+          <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
         <Sidebar
           onSelectSessionType={handleSessionTypeChange}
           currentSessionType={currentSessionType}
@@ -705,7 +723,9 @@ function App() {
             setDownloadProgress(0);
           }}
         />
-      </div>
+          </div>
+        </ConfigProvider>
+      </AppearanceProvider>
     </ThemeProvider>
   );
 }

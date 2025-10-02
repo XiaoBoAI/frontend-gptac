@@ -1,8 +1,8 @@
 import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Collapse, Spin, message, Modal, Input, Select, Form, Upload } from 'antd';
 import type { MenuProps } from 'antd';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 import {
   BookOutlined,
   MessageOutlined,
@@ -116,7 +116,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   handleSendMessage,
   onFileUpload,
 }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const [selectedPlugin, setSelectedPlugin] = useState<string | null>(null);
   const [functionPlugins, setFunctionPlugins] = useState<FunctionPlugin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,7 +173,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
 //     console.log('functionPlugins', functionPlugins);
 //   }, [functionPlugins]);
 
-  const fetchCrazyFunctional = async () => {
+  const fetchCrazyFunctional = async (signal?: AbortSignal) => {
     try {
       const cachedData = getFromCache();
       if (cachedData) {
@@ -189,6 +189,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({}),
+        signal,
       });
 
       if (response.ok) {
@@ -222,7 +223,23 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   };
 
   useEffect(() => {
-    fetchCrazyFunctional();
+    const controller = new AbortController();
+
+    const loadData = async () => {
+      try {
+        await fetchCrazyFunctional(controller.signal);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('加载函数插件失败', err);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   // 判断插件是否需要文件上传功能
@@ -520,9 +537,9 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                   style={{ 
                     width: '100%',
                     borderStyle: 'dashed',
-                    borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
-                    backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
-                    color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                    borderColor: isDark ? '#4b5563' : '#d1d5db',
+                    backgroundColor: isDark ? '#374151' : '#fafafa',
+                    color: isDark ? '#e5e7eb' : '#374151'
                   }}
                 >
                   点击上传文件
@@ -674,9 +691,9 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                         style={{ 
                           width: '100%',
                           borderStyle: 'dashed',
-                          borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
-                          backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
-                          color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                          borderColor: isDark ? '#4b5563' : '#d1d5db',
+                          backgroundColor: isDark ? '#374151' : '#fafafa',
+                          color: isDark ? '#e5e7eb' : '#374151'
                         }}
                       >
                         点击上传文件
@@ -764,9 +781,9 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                   style={{ 
                     width: '100%',
                     borderStyle: 'dashed',
-                    borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
-                    backgroundColor: theme === 'dark' ? '#374151' : '#fafafa',
-                    color: theme === 'dark' ? '#e5e7eb' : '#374151'
+                    borderColor: isDark ? '#4b5563' : '#d1d5db',
+                    backgroundColor: isDark ? '#374151' : '#fafafa',
+                    color: isDark ? '#e5e7eb' : '#374151'
                   }}
                 >
                   点击上传文件
@@ -795,10 +812,10 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center p-8 h-full ${
-        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+        isDark ? 'bg-gray-900' : 'bg-white'
       }`}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-        <span className={`ml-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>加载函数插件中...</span>
+        <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>加载函数插件中...</span>
       </div>
     );
   }
@@ -807,7 +824,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
   if (functionPlugins.length === 0) {
     return (
       <div className={`text-center p-8 h-full ${
-        theme === 'dark' ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
+        isDark ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
       }`}>
         <ApiOutlined className="text-2xl mb-2" />
         <div>暂无函数插件</div>
@@ -817,7 +834,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
 
   return (
     <div className={`flex-1 overflow-auto p-2 crazy-functions-container ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+      isDark ? 'bg-gray-900' : 'bg-white'
     }`} style={{ 
       height: '100%'
     }}>
@@ -827,7 +844,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
         size="small"
         className="crazy-functions-collapse"
         style={{
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+          backgroundColor: isDark ? '#111827' : '#ffffff'
         }}
       >
         {Object.entries(groupedPlugins).map(([groupName, plugins]) => (
@@ -864,17 +881,17 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                   key={`${groupName}-${index}`}
                   className={`p-2 rounded cursor-pointer transition-all duration-200 group plugin-item ${
                     selectedPlugin === plugin.name
-                      ? theme === 'dark' 
+                      ? isDark 
                         ? 'bg-blue-900/30 border border-blue-700/50' 
                         : 'bg-blue-50 border border-blue-200'
-                      : theme === 'dark'
+                      : isDark
                         ? 'hover:bg-gray-800/50 hover:shadow-sm'
                         : 'hover:bg-white hover:shadow-sm'
                   }`}
                   onClick={() => handlePluginClick(plugin)}
                   style={{
                     border: selectedPlugin === plugin.name 
-                      ? theme === 'dark' 
+                      ? isDark 
                         ? '1px solid #374151' 
                         : '1px solid #d1d5db' 
                       : '1px solid transparent'
@@ -884,7 +901,7 @@ const CrazyFunctions: React.FC<CrazyFunctionsProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center">
                         <span className={`font-medium text-sm truncate plugin-name ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          isDark ? 'text-white' : 'text-gray-800'
                         }`}>
                           {plugin.name}
                         </span>

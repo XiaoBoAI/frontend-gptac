@@ -42,7 +42,7 @@ export function DeleteMessageDialog({ onDelete }: DeleteMessageDialogProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <button 
-          className="flex items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative bg-transparent border-none p-0"
+          className="flex items-center gap-1 text-gray-500 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer group relative bg-transparent border-none p-0"
           onClick={() => setIsOpen(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {

@@ -3,7 +3,7 @@ import { SendOutlined, GlobalOutlined, DownOutlined, ClearOutlined, LoadingOutli
 import ModelSettings from './ModelSettings';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { UploadRequestOption as RcCustomRequestOptions } from 'rc-upload/lib/interface';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 
 const { TextArea } = Input;
 
@@ -76,10 +76,10 @@ const modulePlaceholders: Record<string, string> = {
 };
 
 // 自定义停止按钮图标
-const StopCircleIcon: React.FC<{size?:number, theme?:string}> = ({size=22, theme='light'}) => (
+const StopCircleIcon: React.FC<{size?:number, isDark?:boolean}> = ({size=22, isDark=false}) => (
   <svg width={size} height={size} viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="11" cy="11" r="10" stroke={theme === 'dark' ? '#fff' : '#222'} strokeWidth="2" fill="none"/>
-    <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill={theme === 'dark' ? '#fff' : '#222'} />
+    <circle cx="11" cy="11" r="10" stroke={isDark ? '#fff' : '#222'} strokeWidth="2" fill="none"/>
+    <rect x="7.5" y="7.5" width="7" height="7" rx="2" fill={isDark ? '#fff' : '#222'} />
   </svg>
 );
 
@@ -106,7 +106,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   systemPrompt = 'Serve me as a writing and programming assistant. Answer me in Chinese by default.',
   setSystemPrompt,
 }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const inputRef = useRef(null);
   const placeholder = modulePlaceholders[currentModule] || modulePlaceholders['ai_chat'];
 
@@ -121,6 +121,8 @@ const InputArea: React.FC<InputAreaProps> = ({
     valueRef.current = value;
   }, [value]);
 
+  const [predictionLoading, setPredictionLoading] = useState(false);
+  const predictionControllerRef = useRef<AbortController | null>(null);
 
   // 防抖处理用户输入
   const debouncedValue = useDebounce(value, 1000);
@@ -166,6 +168,56 @@ const InputArea: React.FC<InputAreaProps> = ({
       return;
     }
   };
+
+  const handlePredict = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setShowPrediction(false);
+      setPredictions([]);
+      return;
+    }
+
+    try {
+      predictionControllerRef.current?.abort();
+      const controller = new AbortController();
+      predictionControllerRef.current = controller;
+
+      setPredictionLoading(true);
+
+      const response = await fetch('/predict_user_input', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('预测请求失败');
+      }
+
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setPredictions(data);
+        setShowPrediction(true);
+      } else {
+        setPredictions([]);
+        setShowPrediction(false);
+      }
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('预测请求错误:', error);
+        setShowPrediction(false);
+      }
+    } finally {
+      setPredictionLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    predictionControllerRef.current?.abort();
+    predictionControllerRef.current = null;
+  }, []);
 
   // 监听防抖后的输入变化
   useEffect(() => {
@@ -262,9 +314,9 @@ const InputArea: React.FC<InputAreaProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px #e0e0e0',
+    boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px #e0e0e0',
     border: 'none',
-    background: isStreaming ? '#ff4d4f' : (sendDisabled ? (theme === 'dark' ? '#4b5563' : '#f3f3f3') : '#1677ff'),
+    background: isStreaming ? '#ff4d4f' : (sendDisabled ? (isDark ? '#4b5563' : '#f3f3f3') : '#1677ff'),
     color: '#fff',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
@@ -278,13 +330,13 @@ const InputArea: React.FC<InputAreaProps> = ({
       display: 'flex', 
       justifyContent: 'center', 
       marginTop: isEmpty ? 60 : 0,
-      backgroundColor: theme === 'dark' ? '#1f2937' : 'transparent'
+      backgroundColor: isDark ? '#1f2937' : 'transparent'
     }}>
       <div
         style={{
-          background: theme === 'dark' ? '#1f2937' : '#fff',
+          background: isDark ? '#1f2937' : '#fff',
           borderRadius: 24,
-          boxShadow: theme === 'dark' ? '0 2px 16px rgba(0,0,0,0.3)' : '0 2px 16px #eee',
+          boxShadow: isDark ? '0 2px 16px rgba(0,0,0,0.3)' : '0 2px 16px #eee',
           padding: 0,
           width: '80%',
           maxWidth: '900px',
@@ -292,7 +344,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          border: theme === 'dark' ? '2px solid #374151' : '2px solid #f3f3f3',
+          border: isDark ? '2px solid #374151' : '2px solid #f3f3f3',
           marginBottom: 15,
           marginLeft: 10,
           marginRight: 10,
@@ -307,19 +359,19 @@ const InputArea: React.FC<InputAreaProps> = ({
               position: 'absolute',
               right: 0,
               transform: 'translateY(-100%)',
-              background: theme === 'dark' ? '#1e3a8a' : '#f0f8ff',
-              border: theme === 'dark' ? '1px solid #1e40af' : '1px solid #d0e7ff',
+              background: isDark ? '#1e3a8a' : '#f0f8ff',
+              border: isDark ? '1px solid #1e40af' : '1px solid #d0e7ff',
               borderRadius: 12,
               padding: '8px 12px',
               fontSize: 12,
-              color: theme === 'dark' ? '#93c5fd' : '#1677ff',
+              color: isDark ? '#93c5fd' : '#1677ff',
               zIndex: 20,
               maxWidth: 500,
               wordWrap: 'break-word',
-              boxShadow: theme === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(22, 119, 255, 0.1)',
+              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(22, 119, 255, 0.1)',
             }}
           >
-            <div style={{ marginBottom: 6, fontSize: 11, color: theme === 'dark' ? '#9ca3af' : '#666' }}>
+            <div style={{ marginBottom: 6, fontSize: 11, color: isDark ? '#9ca3af' : '#666' }}>
               💡 AI补全建议 (Tab或Ctrl+数字键应用)
             </div>
             {predictions.slice(0, 5).map((prediction, index) => (
@@ -329,29 +381,32 @@ const InputArea: React.FC<InputAreaProps> = ({
                   marginBottom: index === predictions.length - 1 ? 0 : 4,
                   padding: '4px 8px',
                   background: index === 0 
-                    ? (theme === 'dark' ? '#1e40af' : '#e6f3ff') 
-                    : (theme === 'dark' ? '#374151' : '#f8f9fa'),
+                    ? (isDark ? '#1e40af' : '#e6f3ff') 
+                    : (isDark ? '#374151' : '#f8f9fa'),
                   borderRadius: 6,
                   cursor: 'pointer',
                   border: index === 0 
-                    ? (theme === 'dark' ? '1px solid #1d4ed8' : '1px solid #bae7ff') 
-                    : (theme === 'dark' ? '1px solid #4b5563' : '1px solid #e9ecef'),
+                    ? (isDark ? '1px solid #1d4ed8' : '1px solid #bae7ff') 
+                    : (isDark ? '1px solid #4b5563' : '1px solid #e9ecef'),
                   transition: 'all 0.2s',
                 }}
                 onClick={() => applyPrediction(index)}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = theme === 'dark' ? '#1e40af' : '#e6f3ff';
+                  e.currentTarget.style.background = isDark ? '#1e40af' : '#e6f3ff';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = index === 0 
-                    ? (theme === 'dark' ? '#1e40af' : '#e6f3ff') 
-                    : (theme === 'dark' ? '#374151' : '#f8f9fa');
+                    ? (isDark ? '#1e40af' : '#e6f3ff') 
+                    : (isDark ? '#374151' : '#f8f9fa');
                 }}
               >
                 <span style={{ fontWeight: 'bold', marginRight: 6 }}>
                   {index === 0 ? 'Tab' : `Ctrl+${index + 1}`}:
                 </span>
                 <span>{prediction}</span>
+                {predictionLoading && index === 0 && (
+                  <LoadingOutlined className="ml-2 text-xs" />
+                )}
               </div>
             ))}
           </div>
@@ -374,13 +429,13 @@ const InputArea: React.FC<InputAreaProps> = ({
               padding: '24px 80px 24px 24px', // 固定右边距，确保按钮不遮挡文字
               borderRadius: 24,
               resize: 'none',
-              color: theme === 'dark' ? '#e5e7eb' : '#222',
+              color: isDark ? '#e5e7eb' : '#222',
               overflowY: 'auto',
               maxWidth: '100%',
               minHeight: 80,
               lineHeight: 1.5,
             }}
-            className={`input-area-textarea ${theme === 'dark' ? 'dark-placeholder' : 'light-placeholder'}`}
+            className={`input-area-textarea ${isDark ? 'dark-placeholder' : 'light-placeholder'}`}
             onPressEnter={e => { 
               // 检查是否正在使用输入法输入
               if (e.nativeEvent.isComposing) {
@@ -404,7 +459,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                 shape="circle"
                 icon={
                 isStreaming
-                    ? <StopCircleIcon size={Math.max(18, Math.min(22, window.innerWidth * 0.02))} theme={theme} />
+                    ? <StopCircleIcon size={Math.max(18, Math.min(22, window.innerWidth * 0.02))} isDark={isDark} />
                     : <SendOutlined rotate={-90} style={{fontSize: Math.max(14, Math.min(16, window.innerWidth * 0.015))}} />
                 }
                 size="small"
@@ -440,9 +495,9 @@ const InputArea: React.FC<InputAreaProps> = ({
                 borderWidth: 1, 
                 fontWeight: 500, 
                 fontSize: 'clamp(12px, 1.2vw, 14px)', 
-                background: theme === 'dark' ? '#374151' : '#fff',
-                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
-                color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                background: isDark ? '#374151' : '#fff',
+                borderColor: isDark ? '#4b5563' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#374151',
                 height: 'clamp(28px, 3.5vw, 36px)',
                 padding: `0 clamp(12px, 1.5vw, 16px)`,
                 minWidth: 'clamp(80px, 10vw, 120px)',
@@ -489,9 +544,9 @@ const InputArea: React.FC<InputAreaProps> = ({
                 borderWidth: 1, 
                 fontWeight: 500, 
                 fontSize: 'clamp(12px, 1.2vw, 14px)', 
-                background: theme === 'dark' ? '#374151' : '#fff',
-                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
-                color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                background: isDark ? '#374151' : '#fff',
+                borderColor: isDark ? '#4b5563' : '#d1d5db',
+                color: isDark ? '#e5e7eb' : '#374151',
                 height: 'clamp(28px, 3.5vw, 36px)',
                 padding: `0 clamp(12px, 1.5vw, 16px)`,
                 minWidth: 'clamp(70px, 8vw, 100px)',

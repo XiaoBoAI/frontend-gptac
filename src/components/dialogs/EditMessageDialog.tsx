@@ -76,7 +76,7 @@ export function EditMessageDialog({
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          className="flex outline-0 items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative bg-transparent border-none p-0"
+          className="flex outline-0 items-center gap-1 text-gray-500 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group relative bg-transparent border-none p-0"
           onClick={() => setIsOpen(true)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -100,7 +100,7 @@ export function EditMessageDialog({
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[900px] gap-0 p-8">
           <DialogHeader className="space-y-3 pr-8 mb-6">
-            <DialogTitle className="text-2xl font-semibold text-gray-900">{t('common.dialogs.editMessage.title')}</DialogTitle>
+            <DialogTitle className="text-2xl font-semibold">{t('common.dialogs.editMessage.title')}</DialogTitle>
           </DialogHeader>
           {keptImages.length > 0 && (
             <div className="mb-6">
@@ -108,7 +108,7 @@ export function EditMessageDialog({
                 {keptImages.map((imageUrl, index) => (
                   <div
                     key={index}
-                    className="relative border border-gray-200 rounded-lg w-14 h-14"
+                    className="relative border border-gray-200 dark:border-slate-600 rounded-lg w-14 h-14"
                   >
                     <img
                       className="object-cover w-full h-full rounded-lg"
@@ -143,7 +143,11 @@ export function EditMessageDialog({
           </div>
           <DialogFooter className="mt-8 gap-3">
             <DialogClose asChild>
-              <Button variant="outline" size="default" className="px-6">
+              <Button
+                variant="outline"
+                size="default"
+                className="px-6 border-none bg-transparent hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200"
+              >
                 {t('common.cancel')}
               </Button>
             </DialogClose>
@@ -156,7 +160,7 @@ export function EditMessageDialog({
               }
               onClick={handleSave}
               size="default"
-              className="px-6 bg-[#E8532F] hover:bg-[#D14A29] text-white"
+              className="px-6 border-none bg-[#E8532F] hover:bg-[#F06540] dark:bg-[#D14A29] dark:hover:bg-[#E75C34] text-white transition-all duration-200 ease-out transform hover:-translate-y-0.5 hover:shadow-lg"
             >
               {t('common.save')}
             </Button>

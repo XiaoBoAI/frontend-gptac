@@ -67,7 +67,7 @@ function DialogContent({
         data-slot="dialog-content"
         aria-describedby={ariaDescribedBy}
         className={cn(
-          'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-200 bg-white shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-lg max-h-[85vh] overflow-y-auto overflow-x-hidden',
+          'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-lg max-h-[85vh] overflow-y-auto overflow-x-hidden',
           'p-6',
           className
         )}
@@ -75,8 +75,8 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close className="text-gray-400 absolute top-5 right-5 rounded-sm opacity-70 transition-opacity hover:opacity-100 hover:text-gray-600 focus:ring-0 focus:outline-0 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5 cursor-pointer">
-            <XIcon />
+          <DialogPrimitive.Close className="absolute top-3 right-3 inline-flex items-center justify-center p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 transition-colors focus:outline-none focus:ring-0 bg-transparent border border-transparent disabled:pointer-events-none cursor-pointer group">
+            <XIcon className="size-5 transition-transform duration-200 ease-out group-hover:rotate-90 group-hover:scale-110" />
             <span className="sr-only">关闭</span>
           </DialogPrimitive.Close>
         )}
@@ -115,7 +115,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+      className={cn('text-lg font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100', className)}
       {...props}
     />
   )
@@ -128,7 +128,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn('text-sm text-gray-500', className)}
+      className={cn('text-sm text-gray-500 dark:text-gray-300', className)}
       {...props}
     />
   )

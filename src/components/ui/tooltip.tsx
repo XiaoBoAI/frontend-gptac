@@ -76,8 +76,8 @@ export function TooltipContent({ children, className }: TooltipContentProps) {
   return (
     <div
       className={cn(
-        "absolute z-50 px-3 py-1.5 text-xs text-white bg-gray-900 rounded-md shadow-md",
-        "bottom-full left-1/2 transform -translate-x-1/2 mb-2",
+        "absolute z-50 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md shadow-lg",
+        "bottom-full left-1/2 transform -translate-x-1/2 mb-2 backdrop-blur-sm",
         "animate-in fade-in-0 zoom-in-95",
         "whitespace-nowrap",
         className
@@ -86,7 +86,7 @@ export function TooltipContent({ children, className }: TooltipContentProps) {
     >
       {children}
       <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-        <div className="border-4 border-transparent border-t-gray-900" />
+        <div className="border-4 border-transparent border-t-white dark:border-t-slate-800" />
       </div>
     </div>
   )

@@ -13,7 +13,7 @@ import 'github-markdown-css';
 import './MainContent.css';
 import { useAvatar } from './AvatarContext';
 import { beginHttpDownload } from '../Com';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 import {
   EditMessageDialog,
   DeleteMessageDialog,
@@ -57,7 +57,7 @@ const CopyMessageButton: React.FC<{ text: string }> = ({ text }) => {
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className="flex items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative"
+          className="flex items-center gap-1 text-gray-500 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group relative"
           role="button"
           tabIndex={0}
           onClick={handleCopy}
@@ -69,7 +69,7 @@ const CopyMessageButton: React.FC<{ text: string }> = ({ text }) => {
           }}
         >
           {copied ? (
-            <IconCopyCheck size={16} className="text-blue-600" />
+            <IconCopyCheck size={16} className="text-blue-600 dark:text-blue-400" />
           ) : (
             <IconCopy size={16} />
           )}
@@ -84,7 +84,7 @@ const CopyMessageButton: React.FC<{ text: string }> = ({ text }) => {
 
 // 代码块组件，包含高亮和复制功能
 const CodeBlock: React.FC<{ children: string; className?: string }> = ({ children, className }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   
   // 从className中提取语言类型
@@ -159,7 +159,7 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
               <button
           onClick={handleCopy}
           className={`absolute top-3 right-3 z-10 p-2 rounded-md opacity-100 transition-all duration-200 hover:scale-105 ${
-            theme === 'dark' 
+            isDark 
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
               : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
           }`}
@@ -182,7 +182,7 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
       {/* 代码高亮 */}
       <SyntaxHighlighter
         language={language === 'text' ? undefined : language}
-        style={theme === 'dark' ? tomorrow : tomorrow}
+        style={isDark ? tomorrow : tomorrow}
         customStyle={{
           margin: 0,
           borderRadius: '12px',
@@ -191,14 +191,14 @@ const CodeBlock: React.FC<{ children: string; className?: string }> = ({ childre
           padding: '20px',
           //paddingTop: language !== 'text' ? '35px' : '20px',
           paddingRight: '50px',
-          backgroundColor: theme === 'dark' ? '#1a202c' : '#f8f9fa',
-          border: theme === 'dark' ? 'none' : '1px solid #e9ecef',
+          backgroundColor: isDark ? '#1a202c' : '#f8f9fa',
+          border: isDark ? 'none' : '1px solid #e9ecef',
           boxShadow: 'none'
         }}
         showLineNumbers={language !== 'text'}
         wrapLines={true}
         lineNumberStyle={{
-          color: theme === 'dark' ? '#718096' : '#6c757d',
+          color: isDark ? '#718096' : '#6c757d',
           fontSize: '12px',
           paddingRight: '16px',
           minWidth: '2.5em'
@@ -233,7 +233,7 @@ const MainContent: React.FC<MainContentProps> = ({
   onUpdateMessage,
   onDeleteMessage
 }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef(null);
@@ -286,16 +286,20 @@ const MainContent: React.FC<MainContentProps> = ({
   );
 
   useEffect(() => {
-    // loop chatbot, convert to ChatMessage[]
+    if (!Array.isArray(chatbot)) {
+      setMessages([]);
+      setIsEmpty(true);
+      console.warn('chatbot 数据异常: ', chatbot);
+      return;
+    }
+
     const message_buffer: ChatMessage[] = [];
-    console.log('chatbot', chatbot);
     if (chatbot.length === 0) {
       messageSpeedRef.current = {};
     }
 
     for (let i = 0; i < chatbot.length; i++) {
-      const user_str_msg: string = chatbot[i][0];
-      const ai_str_msg: string = chatbot[i][1];
+      const [user_str_msg, ai_str_msg] = chatbot[i];
       if (user_str_msg && user_str_msg !== '') {
         message_buffer.push({
           id: `user-${i}-${Date.now()}`,
@@ -340,7 +344,7 @@ const MainContent: React.FC<MainContentProps> = ({
   }, [chatbot, isStreaming, tokenSpeedState, streamingContent?.thread_id]);
 
   useEffect(() => {
-    setIsEmpty(chatbot.length === 0);
+    setIsEmpty(Array.isArray(chatbot) ? chatbot.length === 0 : true);
   }, [chatbot]);
 
   // 监听等待状态变化
@@ -422,22 +426,22 @@ const MainContent: React.FC<MainContentProps> = ({
   if (isEmpty) {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center px-8 ${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        isDark ? 'bg-gray-800' : 'bg-white'
       }`}>
         <div className="text-center max-w-2xl">
           <div className="text-6xl mb-6">{getModuleIcon(currentSessionType)}</div>
           <h1 className={`text-3xl font-bold mb-4 ${
-            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+            isDark ? 'text-gray-200' : 'text-gray-800'
           }`}>
             {getModuleTitle(currentSessionType)}
           </h1>
           <p className={`text-lg leading-relaxed whitespace-pre-line ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            isDark ? 'text-gray-400' : 'text-gray-600'
           }`}>
             {getModuleDescription(currentSessionType)}
           </p>
           <div className={`mt-8 text-sm ${
-            theme === 'dark' ? 'text-gray-500' : 'text-gray-500'
+            isDark ? 'text-gray-500' : 'text-gray-500'
           }`}>
             在下方输入框中开始您的对话...
           </div>
@@ -449,16 +453,16 @@ const MainContent: React.FC<MainContentProps> = ({
   return (
     <div
       className={`flex-1 overflow-auto ${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        isDark ? 'bg-gray-800' : 'bg-white'
       }`}
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
+        scrollbarColor: isDark ? '#4b5563 transparent' : '#d1d5db transparent',
         // WebKit滚动条样式
         '--scrollbar-width': '6px',
         '--scrollbar-track': 'transparent',
-        '--scrollbar-thumb': theme === 'dark' ? '#4b5563' : '#d1d5db',
-        '--scrollbar-thumb-hover': theme === 'dark' ? '#6b7280' : '#9ca3af',
+        '--scrollbar-thumb': isDark ? '#4b5563' : '#d1d5db',
+        '--scrollbar-thumb-hover': isDark ? '#6b7280' : '#9ca3af',
         // 优化滚动性能
         scrollBehavior: 'auto',
         willChange: 'scroll-position'
@@ -469,7 +473,7 @@ const MainContent: React.FC<MainContentProps> = ({
         style={{
           // 内联样式定义滚动条
           scrollbarWidth: 'thin',
-          scrollbarColor: theme === 'dark' ? '#4b5563 transparent' : '#d1d5db transparent',
+          scrollbarColor: isDark ? '#4b5563 transparent' : '#d1d5db transparent',
           // 确保内容不会因为滚动而重排
           contain: 'layout style paint'
         }}
@@ -508,10 +512,10 @@ const MainContent: React.FC<MainContentProps> = ({
                 <div
                   className={`inline-block px-6 py-4 rounded-2xl max-w-full ${
                     message.sender === 'user'
-                      ? (theme === 'dark' 
+                      ? (isDark 
                           ? 'bg-gray-700 text-gray-200' 
                           : 'bg-gray-200 text-gray-800')
-                      : (theme === 'dark' 
+                      : (isDark 
                           ? 'bg-gray-800 text-gray-200 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-700' 
                           : 'bg-white text-gray-800 border-l-4 border-r-4 border-b-4 border-t-8 border-blue-200')
                   }`}
@@ -553,7 +557,7 @@ const MainContent: React.FC<MainContentProps> = ({
                             if (isInline) {
                               return (
                                 <code className={`px-1 py-0.5 rounded text-sm font-mono ${
-                                  theme === 'dark' 
+                                  isDark 
                                     ? 'bg-gray-700 text-gray-200' 
                                     : 'bg-gray-200 text-gray-800'
                                 }`}>
@@ -568,17 +572,17 @@ const MainContent: React.FC<MainContentProps> = ({
                           ol: ({ children }) => <ol className="list-decimal list-outside mb-1 ml-4 space-y-0.5">{children}</ol>,
                           li: ({ children }) => <li className="mb-0.5 leading-relaxed pl-1">{children}</li>,
                           h1: ({ children }) => <h1 className={`text-xl font-bold mb-1 leading-tight ${
-                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                            isDark ? 'text-gray-200' : 'text-gray-800'
                           }`}>{children}</h1>,
                           h2: ({ children }) => <h2 className={`text-lg font-bold mb-1 leading-tight ${
-                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                            isDark ? 'text-gray-200' : 'text-gray-800'
                           }`}>{children}</h2>,
                           h3: ({ children }) => <h3 className={`text-base font-bold mb-1 leading-tight ${
-                            theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+                            isDark ? 'text-gray-200' : 'text-gray-800'
                           }`}>{children}</h3>,
                           blockquote: ({ children }) => (
                             <blockquote className={`border-l-4 pl-4 italic mb-1 ${
-                              theme === 'dark' 
+                              isDark 
                                 ? 'border-gray-600 text-gray-300' 
                                 : 'border-gray-300 text-gray-700'
                             }`}>
@@ -587,19 +591,19 @@ const MainContent: React.FC<MainContentProps> = ({
                           ),
                           hr: () => (
                             <hr className={`my-2 ${
-                              theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
-                            }`} style={{ border: 'none', borderTop: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, height: '1px' }} />
+                              isDark ? 'border-gray-600' : 'border-gray-300'
+                            }`} style={{ border: 'none', borderTop: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`, height: '1px' }} />
                           ),
                           table: ({ children }) => (
                             <div className="overflow-x-auto mb-3">
                               <table className={`min-w-full border ${
-                                theme === 'dark' ? 'border-gray-600' : 'border-gray-300'
+                                isDark ? 'border-gray-600' : 'border-gray-300'
                               }`}>{children}</table>
                             </div>
                           ),
                           th: ({ children }) => (
                             <th className={`border px-3 py-2 font-semibold ${
-                              theme === 'dark' 
+                              isDark 
                                 ? 'border-gray-600 bg-gray-700 text-gray-200' 
                                 : 'border-gray-300 bg-gray-50 text-gray-800'
                             }`}>
@@ -608,7 +612,7 @@ const MainContent: React.FC<MainContentProps> = ({
                           ),
                           td: ({ children }) => (
                             <td className={`border px-3 py-2 ${
-                              theme === 'dark' 
+                              isDark 
                                 ? 'border-gray-600 text-gray-200' 
                                 : 'border-gray-300 text-gray-800'
                             }`}>{children}</td>
@@ -684,7 +688,9 @@ const MainContent: React.FC<MainContentProps> = ({
 
                 {/* 用户消息的操作按钮 */}
                 {message.sender === 'user' && (
-                  <div className="flex items-center justify-end gap-2 text-gray-500 text-xs mt-2">
+                  <div className={`flex items-center justify-end gap-2 text-xs mt-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-500'
+                  }`}>
                     <EditMessageDialog
                       message={message.text}
                       onSave={(newText) => {
@@ -706,7 +712,9 @@ const MainContent: React.FC<MainContentProps> = ({
 
                 {/* AI回复的操作按钮 - 只在回复结束后显示 */}
                 {message.sender === 'bot' && (
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mt-2">
+                  <div className={`flex items-center gap-2 text-xs mt-2 ${
+                    isDark ? 'text-gray-300' : 'text-gray-500'
+                  }`}>
                     <div className={`flex items-center gap-2 ${isStreaming ? 'hidden' : ''}`}>
                       <EditMessageDialog
                         message={message.text}
@@ -716,7 +724,6 @@ const MainContent: React.FC<MainContentProps> = ({
                           }
                         }}
                       />
-                      <CopyMessageButton text={message.text} />
                       <DeleteMessageDialog
                         onDelete={() => {
                           if (onDeleteMessage) {
@@ -724,6 +731,7 @@ const MainContent: React.FC<MainContentProps> = ({
                           }
                         }}
                       />
+                      <CopyMessageButton text={message.text} />
                       <MessageMetadataDialog metadata={message.metadata || {}} />
 
                       {/* 重新生成按钮 - 仅最后一条消息显示 */}
@@ -731,7 +739,7 @@ const MainContent: React.FC<MainContentProps> = ({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div
-                              className="flex items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative"
+                              className="flex items-center gap-1 text-gray-500 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group relative"
                               role="button"
                               tabIndex={0}
                               onClick={() => {

@@ -5,46 +5,57 @@
 @layer base {
   :root {
     --radius: 0.5rem;
+    --font-size-base: 15px;
+    
+    /* 新的主题颜色变量 */
+    --app-bg: oklch(1 0 0);
+    --app-left-panel-fg: oklch(0.2 0 0);
+    --app-main-view: oklch(1 0 0);
+    --app-main-view-fg: oklch(0.45 0 0);
+    --app-primary: oklch(0.55 0.18 25);
+    --app-primary-fg: oklch(1 0 0);
+    --app-accent: oklch(0.6 0.15 250);
+    --app-accent-fg: oklch(1 0 0);
+    --app-destructive: oklch(0.55 0.18 15);
+    --app-destructive-fg: oklch(1 0 0);
+    
+    /* Tailwind 颜色映射 */
+    --color-app: var(--app-bg);
+    --color-left-panel-fg: var(--app-left-panel-fg);
+    --color-main-view: var(--app-main-view);
+    --color-main-view-fg: var(--app-main-view-fg);
+    --color-primary: var(--app-primary);
+    --color-primary-fg: var(--app-primary-fg);
+    --color-accent: var(--app-accent);
+    --color-accent-fg: var(--app-accent-fg);
+    --color-destructive: var(--app-destructive);
+    --color-destructive-fg: var(--app-destructive-fg);
   }
 
   body {
     @apply bg-white text-gray-900;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
   }
 
   svg {
     stroke-width: 1.5;
   }
+  
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    margin-left: 2px;
+    background-color: color-mix(in srgb, var(--color-main-view-fg) 10%, transparent);
+  }
 }
 
-/* 主题变量定义 */
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
-  --shadow-color: rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="dark"] {
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --border-color: #374151;
-  --shadow-color: rgba(0, 0, 0, 0.3);
-}
-
-/* 全局主题样式 */
-.light-theme {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.dark-theme {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
+/* 主题变量定义 - 已废弃，使用 CSS 变量系统替代 */
 
 /* Markdown 样式覆盖 */
 .markdown-body {
@@ -59,26 +70,26 @@
   word-wrap: break-word;
 }
 
-/* 暗色主题下的markdown样式 */
-.dark-theme .markdown-body {
-  color: var(--text-primary);
+/* 暗色模式下的 markdown 样式 */
+.dark .markdown-body {
+  color: #e5e7eb;
 }
 
-.dark-theme .markdown-body h1,
-.dark-theme .markdown-body h2,
-.dark-theme .markdown-body h3,
-.dark-theme .markdown-body h4,
-.dark-theme .markdown-body h5,
-.dark-theme .markdown-body h6 {
-  color: var(--text-primary);
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4,
+.dark .markdown-body h5,
+.dark .markdown-body h6 {
+  color: #f3f4f6;
 }
 
-.dark-theme .markdown-body p {
-  color: var(--text-primary);
+.dark .markdown-body p {
+  color: #e5e7eb;
 }
 
-.dark-theme .markdown-body strong {
-  color: var(--text-primary);
+.dark .markdown-body strong {
+  color: #f3f4f6;
 }
 
 .markdown-body pre {
@@ -94,9 +105,9 @@
   word-wrap: break-word !important;
 }
 
-.dark-theme .markdown-body pre {
-  background-color: #1f2937 !important;
-  border: 1px solid #374151 !important;
+.dark .markdown-body pre {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
 }
 
 .markdown-body pre code {
@@ -121,9 +132,9 @@
   color: inherit !important;
 }
 
-.dark-theme .markdown-body code {
-  background-color: rgba(75, 85, 99, 0.3) !important;
-  color: var(--text-primary) !important;
+.dark .markdown-body code {
+  background-color: rgba(100, 116, 139, 0.3) !important;
+  color: #e5e7eb !important;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
   font-size: 85% !important;
 }
@@ -520,93 +531,4 @@
   background-color: #e5e7eb !important;
 }
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-code {
-  background-color: #1a1a1a;
-  padding: 2px 4px;
-  margin: 0 4px;
-  border-radius: 4px;
-}
-
-.card {
-  padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-  code {
-    background-color: #f9f9f9;
-  }
-}
+/* 应用程序全局样式已移至顶部 */

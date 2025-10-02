@@ -8,12 +8,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        'main-view-fg': 'rgb(107, 114, 128)',
-        'main-view': 'rgb(255, 255, 255)',
-        'accent': 'rgb(59, 130, 246)',
-        'primary': 'rgb(59, 130, 246)',
-        'destructive': 'rgb(239, 68, 68)',
-        'destructive-fg': 'rgb(255, 255, 255)',
+        // 新的主题颜色系统（基于 CSS 变量）
+        'app': 'var(--color-app)',
+        'left-panel-fg': 'var(--color-left-panel-fg)',
+        'main-view': 'var(--color-main-view)',
+        'main-view-fg': 'var(--color-main-view-fg)',
+        'primary': 'var(--color-primary)',
+        'primary-fg': 'var(--color-primary-fg)',
+        'accent': 'var(--color-accent)',
+        'accent-fg': 'var(--color-accent-fg)',
+        'destructive': 'var(--color-destructive)',
+        'destructive-fg': 'var(--color-destructive-fg)',
       },
       borderRadius: {
         lg: 'var(--radius)',

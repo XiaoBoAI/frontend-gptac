@@ -1,8 +1,8 @@
 import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, Spin, message } from 'antd';
 import type { MenuProps } from 'antd';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 import {
   EditOutlined,
   TranslationOutlined,
@@ -40,12 +40,17 @@ const BasicFunctions: React.FC<any> = ({
   setSpecialKwargs,
   specialKwargs,
 }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const [selectedBasicFunction, setSelectedBasicFunction] = useState<string | null>(null);
   const [basicFunctionItems, setBasicFunctionItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const menuTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
 
-  const fetchCoreFunctional = async () => {
+  if (!Array.isArray(basicFunctionItems)) {
+    return null;
+  }
+
+  const fetchCoreFunctional = async (signal?: AbortSignal) => {
     try {
       const cachedData = getFromCache();
       if (cachedData) {
@@ -67,6 +72,7 @@ const BasicFunctions: React.FC<any> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({}),
+        signal,
       });
 
       if (response.ok) {
@@ -92,7 +98,23 @@ const BasicFunctions: React.FC<any> = ({
   };
 
   useEffect(() => {
-    fetchCoreFunctional();
+    const controller = new AbortController();
+
+    const loadData = async () => {
+      try {
+        await fetchCoreFunctional(controller.signal);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('加载基础功能失败', err);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   const handleClick: MenuProps['onClick'] = (e) => {
@@ -108,10 +130,10 @@ const BasicFunctions: React.FC<any> = ({
   if (isLoading) {
     return (
       <div className={`flex items-center justify-center p-8 h-full ${
-        theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+        isDark ? 'bg-gray-900' : 'bg-white'
       }`}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-        <span className={`ml-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>加载基础功能中...</span>
+        <span className={`ml-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>加载基础功能中...</span>
       </div>
     );
   }
@@ -120,7 +142,7 @@ const BasicFunctions: React.FC<any> = ({
   if (basicFunctionItems.length === 0) {
     return (
       <div className={`text-center p-8 h-full ${
-        theme === 'dark' ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
+        isDark ? 'bg-gray-900 text-gray-500' : 'bg-white text-gray-400'
       }`}>
         <ApiOutlined className="text-2xl mb-2" />
         <div>暂无基础功能</div>
@@ -130,7 +152,7 @@ const BasicFunctions: React.FC<any> = ({
 
   return (
     <div className={`h-full overflow-auto p-2 basic-functions-container ${
-      theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+      isDark ? 'bg-gray-900' : 'bg-white'
     }`}>
       <Menu
         mode="inline"
@@ -138,16 +160,16 @@ const BasicFunctions: React.FC<any> = ({
         style={{ 
           borderRight: 0, 
           flex: 'none',
-          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+          backgroundColor: isDark ? '#111827' : '#ffffff'
         }}
-        className={`border-b ${theme === 'dark' ? 'border-gray-800' : 'border-gray-100'}`}
-        theme={theme}
+        className={`border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}
+        theme={menuTheme}
         items={basicFunctionItems.map(item => ({
           key: item.key,
           label: (
             <div className="flex items-center">
-              <span className={`mr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{item.icon}</span>
-              <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{item.label}</span>
+              <span className={`mr-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{item.icon}</span>
+              <span className={isDark ? 'text-gray-200' : 'text-gray-800'}>{item.label}</span>
             </div>
           ),
         }))}

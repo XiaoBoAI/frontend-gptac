@@ -1,10 +1,10 @@
-import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, message, Flex } from 'antd';
+import { Avatar, Menu, List, Typography, Badge, Button, Tooltip, message, Flex, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import React, { useState, useEffect, useRef } from 'react';
 import { UserInterfaceMsg, ChatMessage, useUserInterfaceMsg, useWebSocketCom } from '../Com'
 import BasicFunctions from './BasicFunctions';
 import CrazyFunctions from './CrazyFunctions';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '@/hooks/useTheme';
 import {
   ClockCircleOutlined,
   MessageOutlined,
@@ -114,6 +114,8 @@ interface SidebarProps {
   onFileUpload?: (options: any) => void;
 }
 
+const toast = message;
+
 const Sidebar: React.FC<SidebarProps> = ({
   onSelectSessionType,
   currentSessionType,
@@ -134,11 +136,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   handleSendMessage,
   onFileUpload,
 }) => {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
   const [activeSection, setActiveSection] = useState('chat');
   const [splitterPosition, setSplitterPosition] = useState(65); // 分割器位置，默认65%
   const [isDragging, setIsDragging] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const menuTheme: 'light' | 'dark' = isDark ? 'dark' : 'light';
 
   // 根据当前模块自动设置活跃的导航区域
   useEffect(() => {
@@ -218,6 +221,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const currentSection = getCurrentSection();
 
+  if (!currentSection) {
+    return (
+      <div className="w-64 h-full flex items-center justify-center bg-transparent">
+        <Spin tip="加载菜单..." />
+      </div>
+    );
+  }
+
   // 处理删除历史记录
   const handleDeleteHistory = (e: React.MouseEvent, historyId: string) => {
     e.stopPropagation(); // 阻止事件冒泡，避免触发选择事件
@@ -277,21 +288,21 @@ const Sidebar: React.FC<SidebarProps> = ({
         className={`sidebar flex flex-col transition-all duration-300 overflow-hidden ${
           collapsed ? 'w-0 opacity-0' : 'w-64 opacity-100'
         } ${
-          theme === 'dark' 
-            ? 'bg-gray-900 border-r border-gray-900' 
+          isDark 
+            ? 'bg-slate-800 border-r border-slate-700' 
             : 'bg-white border-r border-gray-200'
         }`}
       >
         {/* 头部区域 */}
         <div className={`flex items-center p-4 border-b ${
-          theme === 'dark' 
-            ? 'border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50' 
+          isDark 
+            ? 'border-slate-700 bg-gradient-to-r from-slate-700 to-slate-600' 
             : 'border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50'
         }`}>
           <div className="flex items-center">
-            <Avatar size={32} src={null} className={theme === 'dark' ? 'bg-blue-600' : 'bg-blue-500'} />
+            <Avatar size={32} src={null} className={isDark ? 'bg-blue-500' : 'bg-blue-500'} />
             <span className={`ml-2 font-bold text-lg ${
-              theme === 'dark' ? 'text-gray-200' : 'text-gray-800'
+              isDark ? 'text-gray-100' : 'text-gray-800'
             }`}>学术GPT</span>
           </div>
         </div>
@@ -331,20 +342,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                 style={{ 
                   borderRight: 0, 
                   flex: 'none',
-                  backgroundColor: theme === 'dark' ? '#111827' : '#ffffff'
+                  backgroundColor: isDark ? '#1e293b' : '#ffffff'
                 }}
                 className={`border-b ${
-                  theme === 'dark' ? 'border-gray-800' : 'border-gray-100'
+                  isDark ? 'border-slate-700' : 'border-gray-100'
                 }`}
-                theme={theme}
+                theme={menuTheme}
                 items={currentSection.items.map(item => ({
                   key: item.key,
                   label: (
                     <div className="flex items-center">
                       <span className={`mr-2 ${
-                        theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                        isDark ? 'text-gray-300' : 'text-gray-600'
                       }`}>{item.icon}</span>
-                      <span className={theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}>{item.label}</span>
+                      <span className={isDark ? 'text-gray-100' : 'text-gray-800'}>{item.label}</span>
                     </div>
                   ),
                 }))}
@@ -364,7 +375,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div style={{ height: `${100 - splitterPosition}%`, overflow: 'hidden' }}>
             <div className="p-2 history-scroll-container" style={{ height: '100%', overflow: 'auto' }}>
               <div className={`font-semibold text-xs mb-2 flex items-center ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                isDark ? 'text-gray-300' : 'text-gray-500'
               }`}>
                 <ClockCircleOutlined className="mr-1" />
                 历史对话
@@ -372,7 +383,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
               {AdvancedSessionRecords.length === 0 ? (
                 <div className={`text-center text-xs py-4 ${
-                  theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                  isDark ? 'text-gray-500' : 'text-gray-400'
                 }`}>
                   <MessageOutlined className="text-lg mb-1 block" />
                   暂无历史对话
@@ -385,9 +396,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <List.Item
                       className={`group cursor-pointer rounded-md mb-1 transition-colors relative ${
                         currentSessionId === record.id
-                          ? (theme === 'dark' ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-200')
-                          : (theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-50')
-                      } ${record.isStreaming ? (theme === 'dark' ? 'border-l-2 border-l-green-500' : 'border-l-2 border-l-green-400') : ''}`}
+                          ? (isDark ? 'bg-slate-700/50 border-blue-500' : 'bg-blue-50 border-blue-200')
+                          : (isDark ? 'hover:bg-slate-700/30' : 'hover:bg-gray-50')
+                      } ${record.isStreaming ? (isDark ? 'border-l-2 border-l-green-400' : 'border-l-2 border-l-green-400') : ''}`}
                       onClick={() => {
                         // 如果正在流式回复或等待中，且不是当前会话，阻止切换 && currentSessionId !== record.id
                         if (isStreaming || isWaiting) {
@@ -402,7 +413,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center">
                             <span className={`text-xs mr-1 ${
-                              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                              isDark ? 'text-gray-300' : 'text-gray-500'
                             }`}>
                               {getModuleIcon(record.module)}
                             </span>
@@ -416,17 +427,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                             )}
                           </div>
                           <Text className={`text-xs ${
-                            theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                            isDark ? 'text-gray-400' : 'text-gray-400'
                           }`}>{formatTime(record.timestamp)}</Text>
                         </div>
                         <div className={`text-xs font-medium truncate ${
-                          theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          isDark ? 'text-gray-200' : 'text-gray-700'
                         }`}>
                           {getDisplayTitle(record)}
                         </div>
                         {record.isStreaming && (
                           <div className={`text-xs mt-1 flex items-center ${
-                            theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                            isDark ? 'text-green-400' : 'text-green-600'
                           }`}>
                             <LoadingOutlined className="mr-1" />
                             回复中...
@@ -481,8 +492,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* 底部导航区域切换 - 固定在底部 */}
         <div className={`absolute bottom-0 left-0 right-0 p-2 border-t bottom-nav-container ${
-          theme === 'dark' 
-            ? 'border-gray-700 bg-gray-900' 
+          isDark 
+            ? 'border-slate-700 bg-slate-800' 
             : 'border-gray-100 bg-white'
         }`}>
           <div className="flex justify-center space-x-1">
@@ -496,8 +507,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   className={`w-10 h-10 flex items-center justify-center bottom-nav-btn ${
                     activeSection === section.key
                       ? 'bg-blue-500 text-white'
-                      : (theme === 'dark' 
-                          ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-700' 
+                      : (isDark 
+                          ? 'text-gray-300 hover:text-blue-400 hover:bg-slate-700' 
                           : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50')
                   }`}
                   style={{
@@ -517,8 +528,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div
             onClick={() => onCollapse?.(!collapsed)}
             className={`w-3 h-6 flex items-center justify-center cursor-pointer transition-all duration-200 sidebar-toggle-btn group ${
-              theme === 'dark' 
-                ? 'bg-gray-800 hover:bg-gray-700' 
+              isDark 
+                ? 'bg-slate-700 hover:bg-slate-600' 
                 : 'bg-white hover:bg-gray-50'
             }`}
             style={{
@@ -533,13 +544,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
                       <div className="flex flex-col items-center">
             <div className={`w-0.5 h-0.5 rounded-full mb-0.5 group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1 ${
-              theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+              isDark ? 'bg-gray-500' : 'bg-gray-400'
             }`}></div>
             <div className={`w-0.5 h-0.5 rounded-full mb-0.5 group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1 ${
-              theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+              isDark ? 'bg-gray-500' : 'bg-gray-400'
             }`}></div>
             <div className={`w-0.5 h-0.5 rounded-full group-hover:bg-blue-500 transition-all duration-300 group-hover:w-1 ${
-              theme === 'dark' ? 'bg-gray-500' : 'bg-gray-400'
+              isDark ? 'bg-gray-500' : 'bg-gray-400'
             }`}></div>
           </div>
           </div>
@@ -628,12 +639,21 @@ const splitterStyles = `
   }
   
   .history-scroll-container::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(148, 163, 184, 0.3);
     border-radius: 2px;
   }
   
   .history-scroll-container::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(148, 163, 184, 0.5);
+  }
+  
+  /* 暗色模式下的滚动条 */
+  .dark .history-scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.4);
+  }
+  
+  .dark .history-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.6);
   }
 
 `;

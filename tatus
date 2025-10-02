@@ -1,0 +1,26 @@
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/dialogs/EditMessageDialog.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/dialogs/MessageMetadataDialog.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ui/dialog.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ui/textarea.tsx', LF will be replaced by CRLF the next time Git touches it
+ package.json                                     |   2 [32m+[m
+ src/App.tsx                                      |  28 [32m+++[m[31m-[m
+ src/components/BasicFunctions.tsx                |  50 [32m++++[m[31m--[m
+ src/components/CrazyFunctions.tsx                |  63 [32m+++++[m[31m---[m
+ src/components/HeaderBar.tsx                     |  46 [32m++[m[31m----[m
+ src/components/InputArea.tsx                     | 119 [32m++++++++++[m[31m----[m
+ src/components/MainContent.css                   |   9 [32m++[m
+ src/components/MainContent.tsx                   |  88 [32m+++++[m[31m-----[m
+ src/components/ModelSettings.tsx                 |  16 [32m+[m[31m-[m
+ src/components/Sidebar.tsx                       |  88 [32m++++++[m[31m----[m
+ src/components/dialogs/DeleteMessageDialog.tsx   |   2 [32m+[m[31m-[m
+ src/components/dialogs/EditMessageDialog.tsx     |  14 [32m+[m[31m-[m
+ src/components/dialogs/MessageMetadataDialog.tsx |   2 [32m+[m[31m-[m
+ src/components/ui/button.tsx                     |  14 [32m+[m[31m-[m
+ src/components/ui/dialog.tsx                     |  10 [32m+[m[31m-[m
+ src/components/ui/textarea.tsx                   |   2 [32m+[m[31m-[m
+ src/components/ui/tooltip.tsx                    |   6 [32m+[m[31m-[m
+ src/contexts/ThemeContext.tsx                    |  82 [31m----------[m
+ src/index.css                                    | 198 [32m+++++++[m[31m----------------[m
+ tailwind.config.js                               |  17 [32m+[m[31m-[m
+ 20 files changed, 422 insertions(+), 434 deletions(-)
