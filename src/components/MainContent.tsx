@@ -12,13 +12,73 @@ import 'katex/dist/katex.min.css';
 import 'github-markdown-css';
 import './MainContent.css';
 import { useAvatar } from './AvatarContext';
+import {
+  EditMessageDialog,
+  DeleteMessageDialog,
+  MessageMetadataDialog,
+} from '@/components/dialogs';
+import { IconCopy, IconCopyCheck, IconRefresh } from '@tabler/icons-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import TokenSpeedIndicator from './TokenSpeedIndicator';
+import ThinkingBlock from './ThinkingBlock';
+import { useAppState } from '@/hooks/useAppState';
 
 const { Text } = Typography;
 
 interface ChatMessage {
+  id?: string;
   sender: 'user' | 'bot';
   text: string;
+  metadata?: Record<string, unknown>;
+  isLastMessage?: boolean;
 }
+
+// 统一风格的复制按钮组件
+const CopyMessageButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      antdMessage.success('已复制到剪贴板');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      antdMessage.error('复制失败');
+    });
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="flex items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative"
+          role="button"
+          tabIndex={0}
+          onClick={handleCopy}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCopy();
+            }
+          }}
+        >
+          {copied ? (
+            <IconCopyCheck size={16} className="text-blue-600" />
+          ) : (
+            <IconCopy size={16} />
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{copied ? '已复制' : '复制'}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+};
 
 // 代码块组件，包含高亮和复制功能
 const CodeBlock: React.FC<{ children: string; className?: string }> = ({ children, className }) => {
@@ -150,46 +210,85 @@ interface MainContentProps {
   // isEmpty: boolean;
   isStreaming?: boolean; // 是否正在流式回复
   isWaiting?: boolean; // 是否正在等待回复
+  onUpdateMessage?: (index: number, text: string) => void; // 消息编辑回调
+  onDeleteMessage?: (index: number) => void; // 消息删除回调
 }
 
 const MainContent: React.FC<MainContentProps> = ({
   currentSessionType,
   chatbot,
   isStreaming = false,
-  isWaiting = false
+  isWaiting = false,
+  onUpdateMessage,
+  onDeleteMessage
 }) => {
   const { avatarUrl, botAvatarUrl } = useAvatar();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef(null);
+  const messageSpeedRef = useRef<Record<string, number>>({});
   const [showWaiting, setShowWaiting] = useState(false);
   const [isEmpty, setIsEmpty] = useState(false);
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  // 获取 token 速度状态
+  const tokenSpeedState = useAppState((state) => state.tokenSpeed);
+  const streamingContent = useAppState((state) => state.streamingContent);
+  const streamingTokenSpeed = tokenSpeedState?.tokenSpeed ?? 0;
 
   useEffect(() => {
     // loop chatbot, convert to ChatMessage[]
     //console.log('chatbot update');
     const message_buffer: ChatMessage[] = [];
     console.log('chatbot', chatbot);
+    if (chatbot.length === 0) {
+      messageSpeedRef.current = {};
+    }
+
     for (let i = 0; i < chatbot.length; i++) {
       const user_str_msg: string = chatbot[i][0];
       const ai_str_msg: string = chatbot[i][1];
       if (user_str_msg && user_str_msg !== '') {
         message_buffer.push({
+          id: `user-${i}-${Date.now()}`,
           sender: 'user',
           text: user_str_msg
         });
       }
       if (ai_str_msg && ai_str_msg !== '') {
+        const isLastMessage = i === chatbot.length - 1;
+        const messageKey = `bot-${i}`;
+        const isStreamingMessage =
+          isLastMessage && isStreaming && streamingContent?.thread_id;
+
+        let speedValue: number | undefined;
+        if (isStreamingMessage && streamingTokenSpeed > 0) {
+          speedValue = streamingTokenSpeed;
+          messageSpeedRef.current[messageKey] = streamingTokenSpeed;
+        } else if (
+          tokenSpeedState?.message === messageKey &&
+          tokenSpeedState.tokenSpeed > 0
+        ) {
+          speedValue = tokenSpeedState.tokenSpeed;
+          messageSpeedRef.current[messageKey] = tokenSpeedState.tokenSpeed;
+        } else if (messageSpeedRef.current[messageKey] !== undefined) {
+          speedValue = messageSpeedRef.current[messageKey];
+        }
+
         message_buffer.push({
+          id: `bot-${i}-${Date.now()}`,
           sender: 'bot',
-          text: ai_str_msg
+          text: ai_str_msg,
+          isLastMessage,
+          metadata:
+            speedValue && speedValue > 0
+              ? { tokenSpeed: { tokenSpeed: speedValue } }
+              : {},
         });
       }
     }
     setMessages(message_buffer);
     // set messages
     (messagesEndRef.current as unknown as HTMLDivElement)?.scrollIntoView({ behavior: "smooth" });
-  }, [chatbot]);
+  }, [chatbot, isStreaming, tokenSpeedState, streamingContent?.thread_id]);
 
   useEffect(() => {
     setIsEmpty(chatbot.length === 0);
@@ -441,59 +540,84 @@ const MainContent: React.FC<MainContentProps> = ({
                   </div>
                 )} */}
 
-                {/* 用户消息的复制按钮 */}
+                {/* 用户消息的操作按钮 */}
                 {message.sender === 'user' && (
-                  <div className="flex justify-end mt-2">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(message.text).then(() => {
-                          antdMessage.success('已复制到剪贴板');
-                          setCopiedMessageId(message.text);
-                          setTimeout(() => {
-                            setCopiedMessageId(null);
-                          }, 2000);
-                        }).catch(() => {
-                          antdMessage.error('复制失败');
-                        });
+                  <div className="flex items-center justify-end gap-2 text-gray-500 text-xs mt-2">
+                    <EditMessageDialog
+                      message={message.text}
+                      onSave={(newText) => {
+                        if (onUpdateMessage) {
+                          onUpdateMessage(index, newText);
+                        }
                       }}
-                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
-                      style={{ padding: 0, outline: 'none' }}
-                      title="复制"
-                    >
-                      {copiedMessageId === message.text ? (
-                        <CheckOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
-                      ) : (
-                        <CopyOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
-                      )}
-                    </button>
+                    />
+                    <DeleteMessageDialog
+                      onDelete={() => {
+                        if (onDeleteMessage) {
+                          onDeleteMessage(index);
+                        }
+                      }}
+                    />
+                    <CopyMessageButton text={message.text} />
                   </div>
                 )}
 
-                {/* AI回复的复制按钮 - 只在回复结束后显示 */}
-                {message.sender === 'bot' && !isStreaming && (
-                  <div className="flex justify-start mt-2">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(message.text).then(() => {
-                          antdMessage.success('已复制到剪贴板');
-                          setCopiedMessageId(message.text);
-                          setTimeout(() => {
-                            setCopiedMessageId(null);
-                          }, 2000);
-                        }).catch(() => {
-                          antdMessage.error('复制失败');
-                        });
-                      }}
-                      className="flex items-center text-xs text-gray-500 hover:text-gray-700 transition-colors bg-transparent border-none shadow-none"
-                      style={{ padding: 0, outline: 'none' }}
-                      title="复制"
-                    >
-                      {copiedMessageId === message.text ? (
-                        <CheckOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
-                      ) : (
-                        <CopyOutlined style={{ fontSize: 12, fontWeight: 'bold' }} />
+                {/* AI回复的操作按钮 - 只在回复结束后显示 */}
+                {message.sender === 'bot' && (
+                  <div className="flex items-center gap-2 text-gray-500 text-xs mt-2">
+                    <div className={`flex items-center gap-2 ${isStreaming ? 'hidden' : ''}`}>
+                      <EditMessageDialog
+                        message={message.text}
+                        onSave={(newText) => {
+                          if (onUpdateMessage) {
+                            onUpdateMessage(index, newText);
+                          }
+                        }}
+                      />
+                      <CopyMessageButton text={message.text} />
+                      <DeleteMessageDialog
+                        onDelete={() => {
+                          if (onDeleteMessage) {
+                            onDeleteMessage(index);
+                          }
+                        }}
+                      />
+                      <MessageMetadataDialog metadata={message.metadata || {}} />
+                      
+                      {/* 重新生成按钮 - 仅最后一条消息显示 */}
+                      {index === messages.length - 1 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="flex items-center gap-1 hover:text-blue-600 transition-colors cursor-pointer group relative"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                // TODO: 实现重新生成逻辑
+                                console.log('Regenerate message');
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  // TODO: 实现重新生成逻辑
+                                }
+                              }}
+                            >
+                              <IconRefresh size={16} />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>重新生成</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
-                    </button>
+                    </div>
+                    
+                    {/* Token 速度指示器 */}
+                    <TokenSpeedIndicator
+                      streaming={isStreaming && index === messages.length - 1}
+                      metadata={message.metadata}
+                    />
                   </div>
                 )}
               </div>

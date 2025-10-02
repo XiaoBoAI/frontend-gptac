@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+  
+  body {
+    @apply bg-white text-gray-900;
+  }
+  
+  svg {
+    stroke-width: 1.5;
+  }
+}
+
 /* Markdown 样式覆盖 */
 .markdown-body {
   color: inherit;

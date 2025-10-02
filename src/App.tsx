@@ -25,6 +25,7 @@ import Main from 'electron/main';
 import type { UploadRequestOption } from 'rc-upload/lib/interface';
 import React from 'react';
 import { useAvatar } from './components/AvatarContext';
+import { useAppState } from '@/hooks/useAppState';
 
 const { Header, Content, Footer } = Layout;
 const { Text } = Typography;
@@ -35,6 +36,13 @@ const { Text } = Typography;
 // 主应用组件
 function App() {
   const { updateBotAvatarForNewConversation } = useAvatar();
+  
+  // Token 速度状态管理
+  const { resetTokenSpeed, setTokenSpeed, updateStreamingContent } = useAppState();
+  const lastChatbotLengthRef = useRef<number>(0);
+  const messageStartTimeRef = useRef<number>(0);
+  const lastMessageIndexRef = useRef<number>(-1);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   // Use the custom hook for AUTO_USER_COM_INTERFACE state management
   const {
@@ -257,6 +265,63 @@ function App() {
       (event) => {
         const parsedMessage: UserInterfaceMsg = JSON.parse(event.data);
         console.log('parsedMessage', parsedMessage);
+        
+        // 计算新增的内容长度（作为 token 的近似值）
+        const currentChatbot = parsedMessage.chatbot || [];
+        const currentMessageIndex = currentChatbot.length - 1;
+        const currentLength = currentMessageIndex >= 0
+          ? (currentChatbot[currentMessageIndex][1] || '').length
+          : 0;
+
+        // 如果检测到新的助手消息，重置计数器
+        const messageId = `bot-${Math.max(currentMessageIndex, 0)}`;
+        const isNewMessage =
+          currentMessageIndex !== lastMessageIndexRef.current ||
+          lastMessageIdRef.current !== messageId;
+
+        if (isNewMessage && currentMessageIndex >= 0) {
+          lastMessageIndexRef.current = currentMessageIndex;
+          lastMessageIdRef.current = messageId;
+          lastChatbotLengthRef.current = 0;
+          messageStartTimeRef.current = Date.now();
+          resetTokenSpeed();
+          updateStreamingContent({
+            thread_id: `thread-${currentMessageIndex}`,
+            content: currentLength > 0 ? currentChatbot[currentMessageIndex][1] : '',
+          });
+        }
+
+        // 如果是新消息开始，重置并记录开始时间
+        if (lastChatbotLengthRef.current === 0 && currentLength > 0) {
+          messageStartTimeRef.current = Date.now();
+          resetTokenSpeed();
+          updateStreamingContent({
+            thread_id: `thread-${currentMessageIndex}`,
+            content: currentChatbot[currentMessageIndex][1],
+          });
+        }
+        
+        // 计算新增的字符数作为 token 增量
+        const increment = Math.max(0, currentLength - lastChatbotLengthRef.current);
+        
+        // 根据总长度和起始时间计算 token 速度
+        if (currentLength > 0 && messageStartTimeRef.current > 0) {
+          const elapsedSeconds = Math.max((Date.now() - messageStartTimeRef.current) / 1000, 0.1);
+          const averageSpeed = currentLength / elapsedSeconds;
+          setTokenSpeed(messageId, averageSpeed, currentLength);
+          updateStreamingContent({
+            thread_id: `thread-${currentMessageIndex}`,
+            content: currentChatbot[currentMessageIndex][1],
+          });
+        } else {
+          updateStreamingContent({
+            thread_id: `thread-${currentMessageIndex}`,
+            content: currentChatbot[currentMessageIndex]?.[1] ?? '',
+          });
+        }
+        
+        lastChatbotLengthRef.current = currentLength;
+        
         onComReceived(parsedMessage);
         setIsStreaming(true);
         setIsWaiting(false);
@@ -272,20 +337,31 @@ function App() {
         console.log('WebSocket connection error');
         setIsWaiting(false);
         setIsStreaming(false);
+        lastChatbotLengthRef.current = 0;
+        lastMessageIndexRef.current = -1;
         UpdateSessionRecord();
+        resetTokenSpeed();
+        updateStreamingContent(null);
       },
       // onClose callback
       (event) => {
         console.log('WebSocket connection closed');
         setIsWaiting(false);
         setIsStreaming(false);
+        lastChatbotLengthRef.current = 0;
+        lastMessageIndexRef.current = -1;
         UpdateSessionRecord();
+        resetTokenSpeed();
+        updateStreamingContent(null);
       }
     );
     setWs(ws);
   };
 
   const handleClear = () => {
+    lastChatbotLengthRef.current = 0;
+    lastMessageIndexRef.current = -1;
+    resetTokenSpeed();
     CreateNewSession(currentModule); // 忽略返回值
   };
 
@@ -361,6 +437,48 @@ function App() {
     beginHttpDownload(fileUrl);
   }
 
+  // 处理消息编辑
+  const handleUpdateMessage = (messageIndex: number, newText: string) => {
+    // 计算在chatbot数组中的实际位置
+    // 每个chatbot条目包含[user_msg, ai_msg]
+    const chatbotIndex = Math.floor(messageIndex / 2);
+    const isUserMessage = messageIndex % 2 === 0;
+    
+    const newChatbot = [...chatbot];
+    if (chatbotIndex < newChatbot.length) {
+      if (isUserMessage) {
+        newChatbot[chatbotIndex] = [newText, newChatbot[chatbotIndex][1]];
+      } else {
+        newChatbot[chatbotIndex] = [newChatbot[chatbotIndex][0], newText];
+      }
+      setChatbot(newChatbot);
+      
+      // 更新当前会话记录
+      UpdateSessionRecord();
+    }
+  }
+
+  // 处理消息删除
+  const handleDeleteMessage = (messageIndex: number) => {
+    const chatbotIndex = Math.floor(messageIndex / 2);
+    const isUserMessage = messageIndex % 2 === 0;
+    
+    const newChatbot = [...chatbot];
+    if (chatbotIndex < newChatbot.length) {
+      if (isUserMessage) {
+        // 如果删除用户消息，同时删除对应的AI回复
+        newChatbot.splice(chatbotIndex, 1);
+      } else {
+        // 如果删除AI消息，只清空AI回复部分
+        newChatbot[chatbotIndex] = [newChatbot[chatbotIndex][0], ''];
+      }
+      setChatbot(newChatbot);
+      
+      // 更新当前会话记录
+      UpdateSessionRecord();
+    }
+  }
+
   return (
     <div className="App h-screen w-screen flex flex-row fixed top-0 left-0 overflow-hidden">
       <Sidebar
@@ -388,6 +506,8 @@ function App() {
           chatbot={chatbot}
           isStreaming={isStreaming} // 传递流式状态
           isWaiting={isWaiting} // 传递等待状态
+          onUpdateMessage={handleUpdateMessage} // 传递编辑消息回调
+          onDeleteMessage={handleDeleteMessage} // 传递删除消息回调
         />
         <InputArea
           value={MainInput}
